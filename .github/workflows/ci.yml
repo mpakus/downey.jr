@@ -97,6 +97,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: cargo install cargo-llvm-cov --locked
+      - run: mkdir -p coverage/rust
       - run: cargo llvm-cov --workspace --lcov --output-path coverage/rust/lcov.info
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v6
