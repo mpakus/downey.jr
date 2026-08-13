@@ -67,6 +67,22 @@ pub enum Error {
         reason: &'static str,
     },
 
+    /// A project-relative path cannot be used safely.
+    #[error("The path '{}' cannot be used: {reason}.", path.display())]
+    UnsafePath {
+        /// The rejected path.
+        path: PathBuf,
+        /// A user-readable explanation of why the path was rejected.
+        reason: &'static str,
+    },
+
+    /// A resolved path points outside its project directory.
+    #[error("The path '{}' points outside the project directory.", path.display())]
+    PathOutsideProject {
+        /// The rejected path.
+        path: PathBuf,
+    },
+
     /// A requested project does not exist in the registry.
     #[error("The project '{id}' is no longer in the project list.")]
     ProjectNotFound {

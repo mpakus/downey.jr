@@ -4,6 +4,7 @@
 
 pub mod config;
 pub mod error;
+pub mod fsops;
 pub mod paths;
 pub mod projects;
 pub mod search;
