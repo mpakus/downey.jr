@@ -1,0 +1,9 @@
+AGENTS.md
+Cargo.lock
+package-lock.json
+target/
+coverage/
+docs/**/*.md
+docs/book/
+ui/dist/
+ui/coverage/

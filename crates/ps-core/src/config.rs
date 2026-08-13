@@ -1,0 +1,311 @@
+//! Application configuration and validation.
+
+use serde::{Deserialize, Serialize};
+
+use crate::store::VersionedDocument;
+use crate::{Error, Result};
+
+/// Complete application configuration stored in `config.json`.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Config {
+    /// On-disk schema version.
+    pub schema_version: u32,
+    /// Theme selection.
+    pub appearance: Appearance,
+    /// Document typography.
+    pub typography: Typography,
+    /// Preview behavior.
+    pub viewer: Viewer,
+    /// Editor behavior.
+    pub editor: Editor,
+    /// Snapshot-history policy.
+    pub history: History,
+    /// File-tree and export behavior.
+    pub files: Files,
+    /// Last saved window geometry.
+    pub window: Window,
+    /// Update-check behavior.
+    pub updates: Updates,
+}
+
+impl Config {
+    /// Validates configuration ranges that affect rendering and layout.
+    pub fn validate(&self) -> Result<()> {
+        validate_range("font_size", self.typography.font_size, 10, 32)?;
+        validate_range("measure_ch", self.typography.measure_ch, 40, 120)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            schema_version: Self::SCHEMA_VERSION,
+            appearance: Appearance::default(),
+            typography: Typography::default(),
+            viewer: Viewer::default(),
+            editor: Editor::default(),
+            history: History::default(),
+            files: Files::default(),
+            window: Window::default(),
+            updates: Updates::default(),
+        }
+    }
+}
+
+impl VersionedDocument for Config {
+    const SCHEMA_VERSION: u32 = 1;
+
+    fn validate(&self) -> Result<()> {
+        Config::validate(self)
+    }
+}
+
+/// Theme configuration.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Appearance {
+    /// Light theme identifier.
+    pub theme: String,
+    /// Dark theme identifier.
+    pub theme_dark: String,
+    /// Whether appearance follows macOS.
+    pub follow_system: bool,
+    /// User-selected accent color.
+    pub accent: String,
+}
+
+impl Default for Appearance {
+    fn default() -> Self {
+        Self {
+            theme: "paper-light".into(),
+            theme_dark: "paper-dark".into(),
+            follow_system: true,
+            accent: "#C1452F".into(),
+        }
+    }
+}
+
+/// Document typography configuration.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Typography {
+    /// Body font family.
+    pub body_font: String,
+    /// Monospace font family.
+    pub mono_font: String,
+    /// Base font size in CSS pixels.
+    pub font_size: u16,
+    /// Unitless line height.
+    pub line_height: f32,
+    /// Reading measure in `ch` units.
+    pub measure_ch: u16,
+}
+
+impl Default for Typography {
+    fn default() -> Self {
+        Self {
+            body_font: "New York".into(),
+            mono_font: "JetBrains Mono".into(),
+            font_size: 16,
+            line_height: 1.65,
+            measure_ch: 72,
+        }
+    }
+}
+
+/// Initial document-view mode.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ViewMode {
+    /// Rendered Markdown only.
+    #[default]
+    Preview,
+    /// Markdown source only.
+    Editor,
+    /// Source and rendered Markdown side by side.
+    Split,
+}
+
+/// Preview behavior.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Viewer {
+    /// Mode used when opening a document.
+    pub default_mode: ViewMode,
+    /// Whether the table of contents is visible.
+    pub show_toc: bool,
+    /// Whether raw HTML bypasses sanitization.
+    pub allow_raw_html: bool,
+    /// Whether Mermaid diagrams are enabled.
+    pub mermaid_enabled: bool,
+    /// Whether mathematical notation is enabled.
+    pub math_enabled: bool,
+}
+
+impl Default for Viewer {
+    fn default() -> Self {
+        Self {
+            default_mode: ViewMode::Preview,
+            show_toc: true,
+            allow_raw_html: false,
+            mermaid_enabled: true,
+            math_enabled: true,
+        }
+    }
+}
+
+/// Editor behavior.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Editor {
+    /// Idle time before autosave, in milliseconds.
+    pub autosave_ms: u64,
+    /// Whether line numbers are shown.
+    pub line_numbers: bool,
+    /// Whether long lines wrap.
+    pub soft_wrap: bool,
+    /// Whether brackets and quotes close automatically.
+    pub auto_pairs: bool,
+    /// Whether lists continue on Enter.
+    pub continue_lists: bool,
+    /// Whether system spellchecking is enabled.
+    pub spellcheck: bool,
+    /// Whether editor and preview scroll together.
+    pub sync_scroll: bool,
+    /// Project-relative directory for imported assets.
+    pub assets_dir: String,
+    /// Whether the first H1 may rename a document.
+    pub rename_file_from_h1: bool,
+    /// Spaces added for one indentation level.
+    pub indent_unit: u8,
+}
+
+impl Default for Editor {
+    fn default() -> Self {
+        Self {
+            autosave_ms: 800,
+            line_numbers: false,
+            soft_wrap: true,
+            auto_pairs: true,
+            continue_lists: true,
+            spellcheck: true,
+            sync_scroll: true,
+            assets_dir: "assets".into(),
+            rename_file_from_h1: false,
+            indent_unit: 2,
+        }
+    }
+}
+
+/// Snapshot-history policy.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct History {
+    /// Whether new snapshots are recorded.
+    pub enabled: bool,
+    /// Minutes between interval snapshots.
+    pub interval_min: u32,
+    /// Per-project storage cap in megabytes.
+    pub project_cap_mb: u32,
+    /// Global storage cap in megabytes.
+    pub global_cap_mb: u32,
+    /// Hours for which every snapshot is kept.
+    pub keep_all_hours: u32,
+    /// Days for which hourly snapshots are kept.
+    pub keep_hourly_days: u32,
+    /// Days for which daily snapshots are kept.
+    pub keep_daily_days: u32,
+}
+
+impl Default for History {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            interval_min: 5,
+            project_cap_mb: 200,
+            global_cap_mb: 2048,
+            keep_all_hours: 24,
+            keep_hourly_days: 7,
+            keep_daily_days: 90,
+        }
+    }
+}
+
+/// File-tree and export behavior.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Files {
+    /// Whether hidden files are visible.
+    pub show_hidden: bool,
+    /// Ignore patterns applied during export.
+    pub export_ignore: Vec<String>,
+    /// Whether moving an item to Trash asks for confirmation.
+    pub confirm_delete: bool,
+}
+
+impl Default for Files {
+    fn default() -> Self {
+        Self {
+            show_hidden: false,
+            export_ignore: vec![".git", "node_modules", ".DS_Store", "*.zip"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            confirm_delete: true,
+        }
+    }
+}
+
+/// Saved window geometry.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Window {
+    /// Window width in logical pixels.
+    pub width: u32,
+    /// Window height in logical pixels.
+    pub height: u32,
+    /// Project-sidebar width in logical pixels.
+    pub sidebar_w: u32,
+    /// File-tree width in logical pixels.
+    pub tree_w: u32,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Self {
+            width: 1180,
+            height: 780,
+            sidebar_w: 220,
+            tree_w: 260,
+        }
+    }
+}
+
+/// Update-check behavior.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(default)]
+pub struct Updates {
+    /// Whether the optional update check runs at launch.
+    pub check_on_launch: bool,
+}
+
+impl Default for Updates {
+    fn default() -> Self {
+        Self {
+            check_on_launch: true,
+        }
+    }
+}
+
+fn validate_range(field: &'static str, value: u16, min: u16, max: u16) -> Result<()> {
+    if (min..=max).contains(&value) {
+        return Ok(());
+    }
+    Err(Error::InvalidConfig {
+        field,
+        min: i64::from(min),
+        max: i64::from(max),
+        actual: i64::from(value),
+    })
+}

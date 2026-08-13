@@ -1,0 +1,14 @@
+{
+  "release_binary": {
+    "target": "aarch64-apple-darwin",
+    "rust": "1.97.1",
+    "bytes": 4820176
+  },
+  "project_search": {
+    "projects": 10000,
+    "query": "prj 9999",
+    "limit": 50,
+    "mean_nanoseconds": 2391700,
+    "upper_bound_nanoseconds": 2404300
+  }
+}

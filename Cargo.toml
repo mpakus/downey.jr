@@ -1,0 +1,15 @@
+[workspace]
+members = ["crates/ps-app", "crates/ps-core", "crates/ps-render"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+publish = false
+rust-version = "1.97.1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

@@ -1,0 +1,8 @@
+[book]
+authors = ["1537paperstreet contributors"]
+language = "ru"
+src = "src"
+title = "1537paperstreet"
+
+[build]
+build-dir = "book"

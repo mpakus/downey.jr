@@ -1,0 +1,42 @@
+[graph]
+targets = [
+  { triple = "aarch64-apple-darwin" },
+  { triple = "x86_64-apple-darwin" },
+]
+
+[licenses]
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+ignore = true
+
+[advisories]
+ignore = [
+  { id = "RUSTSEC-2025-0075", reason = "Transitive through current Tauri; advisory reports no safe upgrade" },
+  { id = "RUSTSEC-2025-0080", reason = "Transitive through current Tauri; advisory reports no safe upgrade" },
+  { id = "RUSTSEC-2025-0081", reason = "Transitive through current Tauri; advisory reports no safe upgrade" },
+  { id = "RUSTSEC-2025-0098", reason = "Transitive through current Tauri; advisory reports no safe upgrade" },
+  { id = "RUSTSEC-2025-0100", reason = "Transitive through current Tauri; advisory reports no safe upgrade" },
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
