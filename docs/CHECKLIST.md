@@ -24,12 +24,14 @@
 - [x] **T-003** Профиль release: `lto="fat"`, `codegen-units=1`, `panic="abort"`, `strip="symbols"`, `opt-level=3`.
   - Приёмка: `cargo build --release` проходит, размер бинарника записан в `benches/baseline.json`.
 - [x] **T-004** Линтеры и форматтеры: `rustfmt.toml`, `clippy.toml` (`-D warnings`), ESLint + Prettier, `.editorconfig`.
-- [~] **T-005** CI (GitHub Actions, раннер `macos-14`): джобы `fmt`, `clippy`, `test`, `build`. Кеш cargo и npm.
+- [x] **T-005** CI (GitHub Actions, раннер `macos-14`): джобы `fmt`, `clippy`, `test`, `build`. Кеш cargo и npm.
   - Приёмка: PR с ошибкой clippy падает в CI.
+  - Проверено в PR [#1](https://github.com/mpakus/downey.jr/pull/1): намеренный `needless_bool` завершил Clippy job с exit code 101; PR закрыт без merge.
 - [x] **T-006** `cargo-llvm-cov` + `vitest --coverage`, публикация отчёта как артефакта CI. Порог пока не блокирующий.
 - [x] **T-007** Каркас документации: `README.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/adr/000-template.md`, mdBook-скелет в `docs/`.
 - [!] **T-008** ⚠️ **Ранняя проверка подписи и нотаризации** на пустом приложении. Не откладывать на P13 — это главный риск проекта.
   - Приёмка: подписанный и нотаризованный `.app` запускается на чистой машине без предупреждений Gatekeeper.
+  - Решение владельца от 2026-08-13: временно пропустить Apple-сертификаты и публиковать unsigned DMG на сайте. Gatekeeper отклоняет текущий артефакт как `no usable signature`; критерий приёмки T-008 не выполнен.
 - [x] **T-009** `cargo-deny` + `cargo-audit` + `npm audit` в CI. Зафиксировать список разрешённых лицензий.
 
 ---

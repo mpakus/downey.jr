@@ -4,6 +4,10 @@
     "rust": "1.97.1",
     "bytes": 4820176
   },
+  "unsigned_dmg": {
+    "target": "aarch64-apple-darwin",
+    "bytes": 1836290
+  },
   "project_search": {
     "projects": 10000,
     "query": "prj 9999",
