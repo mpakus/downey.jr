@@ -3,5 +3,7 @@
 #![warn(missing_docs)]
 
 mod pipeline;
+mod toc;
 
-pub use pipeline::render;
+pub use pipeline::{RenderedDocument, render, render_document};
+pub use toc::TocItem;
