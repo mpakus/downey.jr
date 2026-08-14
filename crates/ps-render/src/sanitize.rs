@@ -1,4 +1,5 @@
 use std::cell::Cell;
+use std::ops::Range;
 
 use pulldown_cmark::{Event, Tag};
 
@@ -10,7 +11,7 @@ pub(crate) struct Events<'input, 'context, I> {
 
 impl<'input, 'context, I> Events<'input, 'context, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = (Event<'input>, Range<usize>)>,
 {
     pub(crate) fn new(events: I, raw_html_seen: &'context Cell<bool>) -> Self {
         Self {
@@ -23,30 +24,31 @@ where
 
 impl<'input, I> Iterator for Events<'input, '_, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = (Event<'input>, Range<usize>)>,
 {
-    type Item = Event<'input>;
+    type Item = (Event<'input>, Range<usize>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let event = self.events.next()?;
+        let (event, source_range) = self.events.next()?;
         if matches!(event, Event::Html(_) | Event::InlineHtml(_)) {
             self.raw_html_seen.set(true);
         }
 
-        match event {
+        let event = match event {
             Event::Start(Tag::Link {
                 link_type,
                 dest_url,
                 title,
                 id,
-            }) if forbidden_scheme(&dest_url) => Some(Event::Start(Tag::Link {
+            }) if forbidden_scheme(&dest_url) => Event::Start(Tag::Link {
                 link_type,
                 dest_url: "#invalid-url".into(),
                 title,
                 id,
-            })),
-            event => Some(event),
-        }
+            }),
+            event => event,
+        };
+        Some((event, source_range))
     }
 }
 
@@ -54,7 +56,7 @@ pub(crate) fn clean(html: &str) -> String {
     let mut sanitizer = ammonia::Builder::default();
     sanitizer
         .add_tags(["input", "section"])
-        .add_generic_attributes(["class", "id", "data-hash"])
+        .add_generic_attributes(["class", "id", "data-block", "data-src-line", "data-hash"])
         .add_tag_attributes("input", ["checked", "disabled", "type"])
         .add_url_schemes(["asset"]);
     sanitizer.clean(html).to_string()

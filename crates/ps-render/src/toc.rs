@@ -2,6 +2,8 @@ use std::collections::{HashSet, VecDeque};
 
 use pulldown_cmark::{Event, HeadingLevel, Tag, TagEnd};
 
+use crate::blocks::SpannedEvent;
+
 /// A heading shown in the document table of contents.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TocItem {
@@ -15,14 +17,14 @@ pub struct TocItem {
 
 pub(crate) struct HeadingIds<'input, 'toc, I> {
     events: I,
-    pending: VecDeque<Event<'input>>,
+    pending: VecDeque<SpannedEvent<'input>>,
     used_ids: HashSet<String>,
     toc: &'toc mut Vec<TocItem>,
 }
 
 impl<'input, 'toc, I> HeadingIds<'input, 'toc, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = SpannedEvent<'input>>,
 {
     pub(crate) fn new(events: I, toc: &'toc mut Vec<TocItem>) -> Self {
         Self {
@@ -42,16 +44,17 @@ where
             pulldown_cmark::CowStr<'input>,
             Option<pulldown_cmark::CowStr<'input>>,
         )>,
+        source_range: std::ops::Range<usize>,
     ) {
         let mut body = Vec::new();
         let mut title = String::new();
 
         for event in self.events.by_ref() {
-            if matches!(event, Event::End(TagEnd::Heading(_))) {
+            if matches!(event.0, Event::End(TagEnd::Heading(_))) {
                 body.push(event);
                 break;
             }
-            append_title(&mut title, &event);
+            append_title(&mut title, &event.0);
             body.push(event);
         }
 
@@ -66,21 +69,24 @@ where
             title,
             id: id.clone(),
         });
-        self.pending.push_back(Event::Start(Tag::Heading {
-            level,
-            id: Some(id.into()),
-            classes,
-            attrs,
-        }));
+        self.pending.push_back((
+            Event::Start(Tag::Heading {
+                level,
+                id: Some(id.into()),
+                classes,
+                attrs,
+            }),
+            source_range,
+        ));
         self.pending.extend(body);
     }
 }
 
 impl<'input, I> Iterator for HeadingIds<'input, '_, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = SpannedEvent<'input>>,
 {
-    type Item = Event<'input>;
+    type Item = SpannedEvent<'input>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(event) = self.pending.pop_front() {
@@ -88,13 +94,16 @@ where
         }
 
         match self.events.next()? {
-            Event::Start(Tag::Heading {
-                level,
-                id,
-                classes,
-                attrs,
-            }) => {
-                self.queue_heading(level, id, classes, attrs);
+            (
+                Event::Start(Tag::Heading {
+                    level,
+                    id,
+                    classes,
+                    attrs,
+                }),
+                source_range,
+            ) => {
+                self.queue_heading(level, id, classes, attrs, source_range);
                 self.pending.pop_front()
             }
             event => Some(event),

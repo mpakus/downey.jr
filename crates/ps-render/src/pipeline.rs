@@ -1,8 +1,9 @@
 use std::cell::Cell;
 use std::path::Path;
 
-use pulldown_cmark::{Event, Options, Parser, html};
+use pulldown_cmark::{Options, Parser, html};
 
+use crate::blocks::{BlockEvent, Blocks, RenderedBlock, SpannedEvent};
 use crate::chunks::{CLOSE_SECTION, Chunks, OPEN_SECTION};
 use crate::links::Links;
 use crate::mermaid::Mermaid;
@@ -23,6 +24,8 @@ pub struct RenderedDocument {
     pub html: String,
     /// Headings in source order.
     pub toc: Vec<TocItem>,
+    /// Top-level blocks with source mapping and content hashes.
+    pub blocks: Vec<RenderedBlock>,
 }
 
 /// Renders Markdown as HTML with the extensions supported by 1537paperstreet.
@@ -51,10 +54,18 @@ pub fn render_document_with_options(
 ) -> RenderedDocument {
     let raw_html_seen = Cell::new(false);
     let events = sanitize::Events::new(
-        Parser::new_ext(markdown, markdown_options()),
+        Parser::new_ext(markdown, markdown_options()).into_offset_iter(),
         &raw_html_seen,
     );
-    finish_render(markdown, events, render_options, &raw_html_seen)
+    let mut blocks = Vec::new();
+    let (html, toc) = finish_render(
+        markdown,
+        events,
+        render_options,
+        &raw_html_seen,
+        &mut blocks,
+    );
+    RenderedDocument { html, toc, blocks }
 }
 
 /// Renders Markdown with project-relative links restricted to one project root.
@@ -85,23 +96,27 @@ pub fn render_project_with_options(
 ) -> RenderedDocument {
     let raw_html_seen = Cell::new(false);
     let events = sanitize::Events::new(
-        Parser::new_ext(markdown, markdown_options()),
+        Parser::new_ext(markdown, markdown_options()).into_offset_iter(),
         &raw_html_seen,
     );
-    finish_render(
+    let mut blocks = Vec::new();
+    let (html, toc) = finish_render(
         markdown,
         Links::new(events, project_root, document_path, project_scope),
         render_options,
         &raw_html_seen,
-    )
+        &mut blocks,
+    );
+    RenderedDocument { html, toc, blocks }
 }
 
 fn finish_render<'input>(
-    markdown: &str,
-    events: impl Iterator<Item = Event<'input>>,
+    markdown: &'input str,
+    events: impl Iterator<Item = SpannedEvent<'input>>,
     render_options: RenderOptions,
     raw_html_seen: &Cell<bool>,
-) -> RenderedDocument {
+    blocks: &mut Vec<RenderedBlock>,
+) -> (String, Vec<TocItem>) {
     let mut output = String::new();
     let mut toc = Vec::new();
     let mut mermaid_figures = Vec::new();
@@ -114,10 +129,19 @@ fn finish_render<'input>(
             has_headings,
             &mut output,
             &mut toc,
+            markdown,
+            blocks,
         );
         Some(prefix)
     } else {
-        render_events(events, has_headings, &mut output, &mut toc);
+        render_events(
+            events,
+            has_headings,
+            &mut output,
+            &mut toc,
+            markdown,
+            blocks,
+        );
         None
     };
 
@@ -130,24 +154,26 @@ fn finish_render<'input>(
         }
     }
 
-    RenderedDocument { html: output, toc }
+    (output, toc)
 }
 
 fn render_events<'input>(
-    events: impl Iterator<Item = Event<'input>>,
+    events: impl Iterator<Item = SpannedEvent<'input>>,
     has_headings: bool,
     output: &mut String,
     toc: &mut Vec<TocItem>,
+    markdown: &'input str,
+    blocks: &mut Vec<RenderedBlock>,
 ) {
     if has_headings {
-        let mut events = HeadingIds::new(events, toc);
-        render_chunks(&mut events, output);
+        let events = HeadingIds::new(events, toc);
+        render_chunks(Blocks::new(events, markdown, blocks), output);
     } else {
-        render_chunks(events, output);
+        render_chunks(Blocks::new(events, markdown, blocks), output);
     }
 }
 
-fn render_chunks<'input>(events: impl Iterator<Item = Event<'input>>, output: &mut String) {
+fn render_chunks<'input>(events: impl Iterator<Item = BlockEvent<'input>>, output: &mut String) {
     let mut chunks = Chunks::new(events);
     if chunks.has_events() {
         output.push_str(OPEN_SECTION);

@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use ps_core::fsops;
 use pulldown_cmark::{Event, Tag};
 
+use crate::blocks::SpannedEvent;
+
 pub(crate) struct Links<'input, 'context, I> {
     events: I,
     project_root: &'context Path,
@@ -16,7 +18,7 @@ pub(crate) struct Links<'input, 'context, I> {
 
 impl<'input, 'context, I> Links<'input, 'context, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = SpannedEvent<'input>>,
 {
     pub(crate) fn new(
         events: I,
@@ -98,36 +100,38 @@ where
 
 impl<'input, I> Iterator for Links<'input, '_, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = SpannedEvent<'input>>,
 {
-    type Item = Event<'input>;
+    type Item = SpannedEvent<'input>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.events.next()? {
+        let (event, source_range) = self.events.next()?;
+        let event = match event {
             Event::Start(Tag::Link {
                 link_type,
                 dest_url,
                 title,
                 id,
-            }) => Some(Event::Start(Tag::Link {
+            }) => Event::Start(Tag::Link {
                 link_type,
                 dest_url: self.rewrite(dest_url),
                 title,
                 id,
-            })),
+            }),
             Event::Start(Tag::Image {
                 link_type,
                 dest_url,
                 title,
                 id,
-            }) => Some(Event::Start(Tag::Image {
+            }) => Event::Start(Tag::Image {
                 link_type,
                 dest_url: self.rewrite(dest_url),
                 title,
                 id,
-            })),
-            event => Some(event),
-        }
+            }),
+            event => event,
+        };
+        Some((event, source_range))
     }
 }
 
