@@ -1,5 +1,6 @@
-use pulldown_cmark::{Options, Parser, html};
+use pulldown_cmark::{Event, Options, Parser, html};
 
+use crate::mermaid::Mermaid;
 use crate::toc::{HeadingIds, TocItem};
 
 /// Rendered HTML and the headings needed to build its table of contents.
@@ -22,17 +23,30 @@ pub fn render(markdown: &str) -> String {
 pub fn render_document(markdown: &str) -> RenderedDocument {
     let mut output = String::new();
     let mut toc = Vec::new();
+    let has_headings = may_have_heading(markdown);
+    let parser = Parser::new_ext(markdown, options());
 
-    if !may_have_heading(markdown) {
-        html::push_html(&mut output, Parser::new_ext(markdown, options()));
-        return RenderedDocument { html: output, toc };
+    if markdown.contains("mermaid") {
+        render_events(Mermaid::new(parser), has_headings, &mut output, &mut toc);
+    } else {
+        render_events(parser, has_headings, &mut output, &mut toc);
     }
 
-    let mut events = HeadingIds::new(Parser::new_ext(markdown, options()), &mut toc);
-    html::push_html(&mut output, &mut events);
-    drop(events);
-
     RenderedDocument { html: output, toc }
+}
+
+fn render_events<'input>(
+    events: impl Iterator<Item = Event<'input>>,
+    has_headings: bool,
+    output: &mut String,
+    toc: &mut Vec<TocItem>,
+) {
+    if has_headings {
+        let mut events = HeadingIds::new(events, toc);
+        html::push_html(output, &mut events);
+    } else {
+        html::push_html(output, events);
+    }
 }
 
 fn may_have_heading(markdown: &str) -> bool {

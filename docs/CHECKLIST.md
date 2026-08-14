@@ -76,7 +76,7 @@
 - [x] **T-031** `toc.rs`: slug-идентификаторы заголовков (уникальные при повторах), сборка структуры TOC. (← T-030)
 - [ ] **T-032** `highlight.rs`: `syntect` с `ClassedHTMLGenerator`, фича `regex-fancy` (без `onig`), ленивая инициализация через `OnceLock`. (← T-030)
   - Приёмка: подсветка даёт классы, а не инлайновые стили; вклад в размер бинарника < 3 MB (`cargo-bloat`).
-- [ ] **T-033** `mermaid.rs`: перехват fenced-блоков `mermaid` → `<figure class="mermaid" data-hash>` с исходником в `<template>`. (← T-030)
+- [x] **T-033** `mermaid.rs`: перехват fenced-блоков `mermaid` → `<figure class="mermaid" data-hash>` с исходником в `<template>`. (← T-030)
 - [ ] **T-034** `links.rs`: переписывание относительных путей изображений и ссылок в `asset://`, проверка выхода за корень проекта, различение внешних ссылок и ссылок на `.md`. (← T-030, T-020)
 - [ ] **T-035** `sanitize.rs`: `ammonia` при `allow_raw_html=false`; запрет `javascript:` и `data:` в `href`. (← T-030)
   - Приёмка: тест-корпус XSS-векторов, ни один не проходит.
