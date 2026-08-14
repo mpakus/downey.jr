@@ -3,6 +3,7 @@ use std::path::Path;
 
 use pulldown_cmark::{Event, Options, Parser, html};
 
+use crate::chunks::{CLOSE_SECTION, Chunks, OPEN_SECTION};
 use crate::links::Links;
 use crate::mermaid::Mermaid;
 use crate::sanitize;
@@ -140,9 +141,18 @@ fn render_events<'input>(
 ) {
     if has_headings {
         let mut events = HeadingIds::new(events, toc);
-        html::push_html(output, &mut events);
+        render_chunks(&mut events, output);
     } else {
-        html::push_html(output, events);
+        render_chunks(events, output);
+    }
+}
+
+fn render_chunks<'input>(events: impl Iterator<Item = Event<'input>>, output: &mut String) {
+    let mut chunks = Chunks::new(events);
+    if chunks.has_events() {
+        output.push_str(OPEN_SECTION);
+        html::push_html(output, chunks);
+        output.push_str(CLOSE_SECTION);
     }
 }
 

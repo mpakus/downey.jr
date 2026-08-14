@@ -53,7 +53,7 @@ where
 pub(crate) fn clean(html: &str) -> String {
     let mut sanitizer = ammonia::Builder::default();
     sanitizer
-        .add_tags(["input"])
+        .add_tags(["input", "section"])
         .add_generic_attributes(["class", "id", "data-hash"])
         .add_tag_attributes("input", ["checked", "disabled", "type"])
         .add_url_schemes(["asset"]);
