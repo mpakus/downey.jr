@@ -1,5 +1,8 @@
+use std::path::Path;
+
 use pulldown_cmark::{Event, Options, Parser, html};
 
+use crate::links::Links;
 use crate::mermaid::Mermaid;
 use crate::toc::{HeadingIds, TocItem};
 
@@ -21,15 +24,36 @@ pub fn render(markdown: &str) -> String {
 /// Renders Markdown and collects its table of contents.
 #[must_use]
 pub fn render_document(markdown: &str) -> RenderedDocument {
+    finish_render(markdown, Parser::new_ext(markdown, options()))
+}
+
+/// Renders Markdown with project-relative links restricted to one project root.
+#[must_use]
+pub fn render_project(
+    markdown: &str,
+    project_root: &Path,
+    document_path: &Path,
+    project_scope: &str,
+) -> RenderedDocument {
+    let parser = Parser::new_ext(markdown, options());
+    finish_render(
+        markdown,
+        Links::new(parser, project_root, document_path, project_scope),
+    )
+}
+
+fn finish_render<'input>(
+    markdown: &str,
+    events: impl Iterator<Item = Event<'input>>,
+) -> RenderedDocument {
     let mut output = String::new();
     let mut toc = Vec::new();
     let has_headings = may_have_heading(markdown);
-    let parser = Parser::new_ext(markdown, options());
 
     if markdown.contains("mermaid") {
-        render_events(Mermaid::new(parser), has_headings, &mut output, &mut toc);
+        render_events(Mermaid::new(events), has_headings, &mut output, &mut toc);
     } else {
-        render_events(parser, has_headings, &mut output, &mut toc);
+        render_events(events, has_headings, &mut output, &mut toc);
     }
 
     RenderedDocument { html: output, toc }

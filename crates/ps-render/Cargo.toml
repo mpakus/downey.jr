@@ -10,4 +10,8 @@ path = "src/lib.rs"
 
 [dependencies]
 blake3 = "1.8.6"
+ps-core = { version = "0.1.0", path = "../ps-core" }
 pulldown-cmark = { version = "0.13.4", default-features = false, features = ["html"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
