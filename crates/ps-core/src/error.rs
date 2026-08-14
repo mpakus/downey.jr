@@ -103,6 +103,18 @@ pub enum Error {
         source: trash::Error,
     },
 
+    /// Starting or configuring filesystem observation failed.
+    #[error("Couldn't {action} for '{}'.", path.display())]
+    Notify {
+        /// A user-readable description of the attempted watcher operation.
+        action: &'static str,
+        /// The watched project path.
+        path: PathBuf,
+        /// The underlying notification backend error.
+        #[source]
+        source: notify::Error,
+    },
+
     /// A requested project does not exist in the registry.
     #[error("The project '{id}' is no longer in the project list.")]
     ProjectNotFound {
