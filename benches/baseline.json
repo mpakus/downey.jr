@@ -20,5 +20,34 @@
     "mean_nanoseconds": 37928974,
     "upper_bound_nanoseconds": 38675535,
     "budget_nanoseconds": 120000000
+  },
+  "render_markdown": {
+    "10_kib": {
+      "bytes": 10240,
+      "mean_nanoseconds": 90404,
+      "upper_bound_nanoseconds": 90824
+    },
+    "100_kib": {
+      "bytes": 102400,
+      "mean_nanoseconds": 862980,
+      "upper_bound_nanoseconds": 867430
+    },
+    "1_mib": {
+      "bytes": 1048576,
+      "mean_nanoseconds": 9035500,
+      "upper_bound_nanoseconds": 9050600,
+      "budget_nanoseconds": 60000000
+    },
+    "5_mib": {
+      "bytes": 5242880,
+      "mean_nanoseconds": 50466000,
+      "upper_bound_nanoseconds": 50627000
+    },
+    "first_chunk_5_mib": {
+      "bytes": 5242880,
+      "mean_nanoseconds": 51033000,
+      "upper_bound_nanoseconds": 51276000,
+      "budget_nanoseconds": 150000000
+    }
   }
 }

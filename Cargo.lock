@@ -2853,6 +2853,7 @@ version = "0.1.0"
 dependencies = [
  "ammonia",
  "blake3",
+ "criterion",
  "insta",
  "ps-core",
  "pulldown-cmark",
