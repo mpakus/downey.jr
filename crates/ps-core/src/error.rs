@@ -95,6 +95,14 @@ pub enum Error {
         suggested_name: String,
     },
 
+    /// Moving selected items to the operating system Trash failed.
+    #[error("Couldn't move the selected items to Trash.")]
+    Trash {
+        /// The underlying Trash operation error.
+        #[source]
+        source: trash::Error,
+    },
+
     /// A requested project does not exist in the registry.
     #[error("The project '{id}' is no longer in the project list.")]
     ProjectNotFound {
