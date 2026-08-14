@@ -1,0 +1,92 @@
+use ps_render::{RenderOptions, render, render_with_options};
+
+#[test]
+fn rejects_the_xss_corpus_by_default() {
+    let markdown = r#"
+<script>alert('script')</script>
+
+<img src="x" onerror="alert('image')">
+
+<svg onload="alert('svg')"><circle /></svg>
+
+<iframe srcdoc="<script>alert('frame')</script>"></iframe>
+
+<a href="javascript:alert('raw-link')">raw JavaScript link</a>
+
+<a href="data:text/html,<script>alert('data')</script>">raw data link</a>
+
+<a href="JaVaScRiPt:alert('mixed-case')">mixed-case link</a>
+
+<a href="java&#x0a;script:alert('entity-control')">entity control link</a>
+
+[Markdown JavaScript link](javascript:alert('markdown-link'))
+
+[Markdown data link](data:text/html,<script>alert('markdown-data')</script>)
+
+<form action="javascript:alert('form')"><button>Submit</button></form>
+
+<object data="data:text/html,unsafe"></object>
+
+<embed src="javascript:alert('embed')">
+
+<details open ontoggle="alert('details')">details</details>
+
+<meta http-equiv="refresh" content="0;url=javascript:alert('meta')">
+
+<style>body { background: url('javascript:alert(1)') }</style>
+"#;
+
+    let html = render(markdown);
+
+    for rejected in [
+        "<script",
+        "onerror",
+        "<svg",
+        "onload",
+        "<iframe",
+        "srcdoc",
+        "javascript:",
+        "data:text/html",
+        "<form",
+        "action=",
+        "<object",
+        "<embed",
+        "ontoggle",
+        "<meta",
+        "<style",
+    ] {
+        assert!(
+            !html.to_ascii_lowercase().contains(rejected),
+            "XSS vector {rejected:?} survived in {html}"
+        );
+    }
+
+    assert!(html.contains("raw JavaScript link"));
+    assert!(html.contains("Markdown JavaScript link"));
+}
+
+#[test]
+fn raw_html_can_be_enabled_explicitly() {
+    let html = render_with_options(
+        "<mark data-reader=\"yes\">raw</mark>",
+        RenderOptions {
+            allow_raw_html: true,
+        },
+    );
+
+    assert_eq!(html, "<p><mark data-reader=\"yes\">raw</mark></p>\n");
+}
+
+#[test]
+fn dangerous_markdown_links_are_rejected_even_when_raw_html_is_enabled() {
+    let html = render_with_options(
+        "[JavaScript](JaVaScRiPt:alert(1)) [data](data:text/html,unsafe) [entity](java&#x73;cript:alert(1)) [control](java&#x0a;script:alert(1))",
+        RenderOptions {
+            allow_raw_html: true,
+        },
+    );
+
+    assert_eq!(html.matches("href=\"#invalid-url\"").count(), 4, "{html}");
+    assert!(!html.to_ascii_lowercase().contains("javascript:"));
+    assert!(!html.to_ascii_lowercase().contains("data:text/html"));
+}

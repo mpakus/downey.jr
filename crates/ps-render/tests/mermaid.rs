@@ -8,7 +8,7 @@ fn turns_mermaid_fences_into_hashed_safe_templates() {
     let html = render(&markdown);
 
     assert!(html.starts_with("<figure class=\"mermaid\" data-hash=\""));
-    assert!(html.contains("<template>graph TD\n"));
+    assert!(html.contains("<template>graph TD\n"), "{html}");
     assert!(html.contains("A[&lt;unsafe&gt;] --&gt; B"));
     assert!(html.contains("&lt;/template&gt;&lt;script&gt;alert(1)&lt;/script&gt;"));
     assert!(html.contains("</template></figure>"));
