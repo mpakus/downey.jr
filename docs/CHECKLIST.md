@@ -72,7 +72,7 @@
 
 ## P3 — `ps-render`: конвейер Markdown → HTML
 
-- [ ] **T-030** `pipeline.rs`: базовый рендер через `pulldown-cmark` с GFM-опциями из PLAN § ADR-002.
+- [x] **T-030** `pipeline.rs`: базовый рендер через `pulldown-cmark` с GFM-опциями из PLAN § ADR-002.
 - [ ] **T-031** `toc.rs`: slug-идентификаторы заголовков (уникальные при повторах), сборка структуры TOC. (← T-030)
 - [ ] **T-032** `highlight.rs`: `syntect` с `ClassedHTMLGenerator`, фича `regex-fancy` (без `onig`), ленивая инициализация через `OnceLock`. (← T-030)
   - Приёмка: подсветка даёт классы, а не инлайновые стили; вклад в размер бинарника < 3 MB (`cargo-bloat`).
