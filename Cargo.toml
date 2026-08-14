@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/ps-app", "crates/ps-core", "crates/ps-render"]
+exclude = ["fuzz"]
 resolver = "2"
 
 [workspace.package]

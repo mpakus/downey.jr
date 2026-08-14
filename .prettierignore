@@ -4,6 +4,10 @@ package-lock.json
 target/
 coverage/
 crates/ps-render/tests/corpus/
+fuzz/artifacts/
+fuzz/corpus/
+fuzz/coverage/
+fuzz/target/
 docs/**/*.md
 docs/book/
 ui/dist/
