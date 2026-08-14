@@ -83,6 +83,18 @@ pub enum Error {
         path: PathBuf,
     },
 
+    /// A file or directory already uses the requested name.
+    #[error(
+        "A file or folder named '{}' already exists. Try '{suggested_name}'.",
+        path.display()
+    )]
+    NameConflict {
+        /// The occupied destination path.
+        path: PathBuf,
+        /// The next available file name in the destination directory.
+        suggested_name: String,
+    },
+
     /// A requested project does not exist in the registry.
     #[error("The project '{id}' is no longer in the project list.")]
     ProjectNotFound {
