@@ -1,0 +1,13 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/footnotes.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="ce59476a58d0254fdb831a98f3dff960e1d25ab11688a8529f65046d1ad1a453">
+<p>Statement with a footnote.<sup class="footnote-reference"><a href="#note">1</a></sup></p>
+</section>
+<section data-block="1" data-src-line="3" data-hash="91dec74f1831a331fbfd4f06225665312d8a1653aa357f10d1cda02627a225b2">
+<div class="footnote-definition" id="note"><sup class="footnote-definition-label">1</sup>
+<p>Footnote with <em>formatting</em>.</p>
+</div>
+</section>
+</section>

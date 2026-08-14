@@ -54,16 +54,16 @@ fn keeps_nested_and_unclosed_markdown_inside_one_top_level_block() {
 #[test]
 fn source_maps_cover_the_renderer_corpus() {
     let corpus = [
-        "# CommonMark\n\nParagraph with *emphasis* and [link](https://example.com).\n",
-        "| A | B |\n| - | - |\n| 1 | 2 |\n",
-        "Footnote[^1].\n\n[^1]: note\n",
-        "- [x] done\n- [ ] open\n",
-        "```mermaid\ngraph TD\nA --> B\n```\n",
-        "Inline $x + y$.\n\n$$z = 1$$\n",
-        "- outer\n  - nested\n    - deep\n",
-        "<div>raw <strong>HTML</strong></div>\n",
-        "Broken **strong\n\n```rust\nunclosed\n",
-        "Кириллица 😀\n\nمرحبا بالعالم\n",
+        include_str!("corpus/commonmark.md"),
+        include_str!("corpus/tables.md"),
+        include_str!("corpus/footnotes.md"),
+        include_str!("corpus/task-lists.md"),
+        include_str!("corpus/mermaid.md"),
+        include_str!("corpus/math.md"),
+        include_str!("corpus/nested-lists.md"),
+        include_str!("corpus/raw-html.md"),
+        include_str!("corpus/broken-markdown.md"),
+        include_str!("corpus/unicode-rtl.md"),
     ];
 
     for markdown in corpus {

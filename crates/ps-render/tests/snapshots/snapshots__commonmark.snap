@@ -1,0 +1,20 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/commonmark.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="c6a03d21daf9cc1a1c9815f915de6b639646091c63b8c9d8c0359ff566f589e0">
+<h1 id="reader">Reader</h1>
+</section>
+<section data-block="1" data-src-line="3" data-hash="10f7fbbd9189fcc3c66baabb274d9eb6f6a6f1ccd88539656f8bf9045b4dad71">
+<p>Paragraph with <em>emphasis</em>, <strong>strong text</strong>, <code>inline code</code>, and <a href="https://example.com">a link</a>.</p>
+</section>
+<section data-block="2" data-src-line="5" data-hash="728efe449e3bc4166f980599d219f3cfd4a53d3d3c61a570640f5e00d5191f4f">
+<blockquote>
+<p>A quoted line<br />
+with a hard break.</p>
+</blockquote>
+</section>
+<section data-block="3" data-src-line="8" data-hash="d71c14607bb123a19590127706f367f362b0463262fae84e873ef9ae9efb499f">
+<hr />
+</section>
+</section>

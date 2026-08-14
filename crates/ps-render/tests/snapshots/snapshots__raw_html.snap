@@ -1,0 +1,9 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/raw-html.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="cd52adffb4283b59e1cdaedd2d04c1da71c2bcbc9ae9bdd097600e839320664e"><div class="note">
+  safe <strong>text</strong>
+</div>
+</section>
+</section>

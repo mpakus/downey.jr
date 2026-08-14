@@ -1,0 +1,10 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/tables.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="502701b2dc72cdfbe807fae4598e5c957f0ab0fb925c13ddf87aa36c06c277f7"><table><thead><tr><th style="text-align: left">Name</th><th style="text-align: right">Status</th></tr></thead><tbody>
+<tr><td style="text-align: left">Alpha</td><td style="text-align: right">Ready</td></tr>
+<tr><td style="text-align: left">Beta</td><td style="text-align: right">Waiting</td></tr>
+</tbody></table>
+</section>
+</section>
