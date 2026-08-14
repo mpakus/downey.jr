@@ -14,5 +14,11 @@
     "limit": 50,
     "mean_nanoseconds": 2391700,
     "upper_bound_nanoseconds": 2404300
+  },
+  "tree_read_dir": {
+    "entries": 50000,
+    "mean_nanoseconds": 37928974,
+    "upper_bound_nanoseconds": 38675535,
+    "budget_nanoseconds": 120000000
   }
 }

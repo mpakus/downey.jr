@@ -26,3 +26,7 @@ tempfile = "3.27.0"
 [[bench]]
 name = "projects_search"
 harness = false
+
+[[bench]]
+name = "tree_read_dir"
+harness = false
