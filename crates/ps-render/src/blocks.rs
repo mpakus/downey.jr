@@ -24,22 +24,22 @@ pub struct RenderedBlock {
     pub hash: String,
 }
 
-pub(crate) struct Blocks<'input, 'blocks, I> {
+pub(crate) struct Blocks<'events, 'source, 'blocks, I> {
     events: I,
-    markdown: &'input str,
+    markdown: &'source str,
     blocks: &'blocks mut Vec<RenderedBlock>,
-    pending: VecDeque<BlockEvent<'input>>,
+    pending: VecDeque<BlockEvent<'events>>,
     scanned_to: usize,
     source_line: usize,
 }
 
-impl<'input, 'blocks, I> Blocks<'input, 'blocks, I>
+impl<'events, 'source, 'blocks, I> Blocks<'events, 'source, 'blocks, I>
 where
-    I: Iterator<Item = SpannedEvent<'input>>,
+    I: Iterator<Item = SpannedEvent<'events>>,
 {
     pub(crate) fn new(
         events: I,
-        markdown: &'input str,
+        markdown: &'source str,
         blocks: &'blocks mut Vec<RenderedBlock>,
     ) -> Self {
         Self {
@@ -97,11 +97,11 @@ where
     }
 }
 
-impl<'input, I> Iterator for Blocks<'input, '_, I>
+impl<'events, I> Iterator for Blocks<'events, '_, '_, I>
 where
-    I: Iterator<Item = SpannedEvent<'input>>,
+    I: Iterator<Item = SpannedEvent<'events>>,
 {
-    type Item = BlockEvent<'input>;
+    type Item = BlockEvent<'events>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(event) = self.pending.pop_front() {

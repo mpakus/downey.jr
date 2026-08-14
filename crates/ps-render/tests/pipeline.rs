@@ -34,3 +34,14 @@ $$z = 1$$
         assert!(html.contains(expected), "missing {expected:?} in {html}");
     }
 }
+
+#[test]
+fn minimized_fuzz_regression_for_malformed_task_list() {
+    // The incomplete UTF-8 byte mirrors the byte-oriented fuzz target exactly.
+    let bytes = [45, 32, 91, 120, 93, 58, 210, 111, 13, 12, 13, 13];
+    let markdown = String::from_utf8_lossy(&bytes);
+
+    let html = render(&markdown);
+
+    assert!(!html.is_empty());
+}

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::path::Path;
 
@@ -52,9 +53,10 @@ pub fn render_document_with_options(
     markdown: &str,
     render_options: RenderOptions,
 ) -> RenderedDocument {
+    let parser_input = normalize_parser_input(markdown);
     let raw_html_seen = Cell::new(false);
     let events = sanitize::Events::new(
-        Parser::new_ext(markdown, markdown_options()).into_offset_iter(),
+        Parser::new_ext(&parser_input, markdown_options()).into_offset_iter(),
         &raw_html_seen,
     );
     let mut blocks = Vec::new();
@@ -94,9 +96,10 @@ pub fn render_project_with_options(
     project_scope: &str,
     render_options: RenderOptions,
 ) -> RenderedDocument {
+    let parser_input = normalize_parser_input(markdown);
     let raw_html_seen = Cell::new(false);
     let events = sanitize::Events::new(
-        Parser::new_ext(markdown, markdown_options()).into_offset_iter(),
+        Parser::new_ext(&parser_input, markdown_options()).into_offset_iter(),
         &raw_html_seen,
     );
     let mut blocks = Vec::new();
@@ -110,9 +113,9 @@ pub fn render_project_with_options(
     RenderedDocument { html, toc, blocks }
 }
 
-fn finish_render<'input>(
-    markdown: &'input str,
-    events: impl Iterator<Item = SpannedEvent<'input>>,
+fn finish_render<'events>(
+    markdown: &str,
+    events: impl Iterator<Item = SpannedEvent<'events>>,
     render_options: RenderOptions,
     raw_html_seen: &Cell<bool>,
     blocks: &mut Vec<RenderedBlock>,
@@ -157,12 +160,12 @@ fn finish_render<'input>(
     (output, toc)
 }
 
-fn render_events<'input>(
-    events: impl Iterator<Item = SpannedEvent<'input>>,
+fn render_events<'events>(
+    events: impl Iterator<Item = SpannedEvent<'events>>,
     has_headings: bool,
     output: &mut String,
     toc: &mut Vec<TocItem>,
-    markdown: &'input str,
+    markdown: &str,
     blocks: &mut Vec<RenderedBlock>,
 ) {
     if has_headings {
@@ -186,6 +189,32 @@ fn may_have_heading(markdown: &str) -> bool {
     markdown
         .bytes()
         .any(|byte| matches!(byte, b'#' | b'=' | b'-'))
+}
+
+fn normalize_parser_input(markdown: &str) -> Cow<'_, str> {
+    if !markdown.chars().any(is_unsupported_control) {
+        return Cow::Borrowed(markdown);
+    }
+
+    Cow::Owned(
+        markdown
+            .chars()
+            .map(|character| {
+                if is_unsupported_control(character) {
+                    ' '
+                } else {
+                    character
+                }
+            })
+            .collect(),
+    )
+}
+
+fn is_unsupported_control(character: char) -> bool {
+    matches!(
+        character,
+        '\0'..='\u{0008}' | '\u{000B}'..='\u{000C}' | '\u{000E}'..='\u{001F}' | '\u{007F}'
+    )
 }
 
 fn markdown_options() -> Options {
