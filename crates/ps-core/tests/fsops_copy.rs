@@ -209,6 +209,53 @@ fn files_over_fifty_megabytes_report_progress() {
 }
 
 #[test]
+fn replacement_race_preserves_external_content_and_restores_the_original() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    File::create(root.join("large.bin"))
+        .expect("large source")
+        .set_len(51 * 1024 * 1024)
+        .expect("sparse source size");
+    fs::write(root.join("target.bin"), b"Original text").expect("original destination");
+    let mut inserted_external_file = false;
+
+    let result = fsops::copy(
+        &root,
+        Path::new("large.bin"),
+        Path::new("target.bin"),
+        ConflictStrategy::Replace,
+        |_| Ok(()),
+        |_| {
+            if !inserted_external_file {
+                fs::write(root.join("target.bin"), b"External text").expect("external destination");
+                inserted_external_file = true;
+            }
+        },
+    );
+
+    assert!(result.is_err());
+    assert_eq!(
+        fs::read(root.join("target.bin")).expect("original restored"),
+        b"Original text"
+    );
+    let recovery = fs::read_dir(&root)
+        .expect("project entries")
+        .filter_map(std::result::Result::ok)
+        .map(|entry| entry.path())
+        .find(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(".1537paperstreet.replaced-"))
+        })
+        .expect("failed copy recovery folder");
+    assert_eq!(
+        fs::read(recovery.join("failed-copy")).expect("external content preserved"),
+        b"External text"
+    );
+}
+
+#[test]
 fn rejects_copying_a_directory_into_itself() {
     let temp = tempfile::tempdir().expect("temporary directory");
     let root = temp.path().join("project");
