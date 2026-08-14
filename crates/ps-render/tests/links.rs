@@ -1,0 +1,63 @@
+use std::fs;
+use std::os::unix::fs::symlink;
+use std::path::Path;
+
+use ps_render::render_project;
+use tempfile::tempdir;
+
+#[test]
+fn rewrites_only_paths_that_resolve_inside_the_project() {
+    let project = tempdir().expect("temporary project");
+    let outside = tempdir().expect("outside directory");
+    fs::create_dir_all(project.path().join("notes/images")).expect("asset directory");
+    fs::write(
+        project.path().join("notes/images/cover image.png"),
+        b"image",
+    )
+    .expect("image");
+    fs::write(project.path().join("notes/guide.md"), b"# Guide").expect("guide");
+    fs::write(project.path().join("notes/manual.pdf"), b"pdf").expect("pdf");
+    fs::write(outside.path().join("secret.txt"), b"secret").expect("outside file");
+    symlink(outside.path(), project.path().join("notes/escape")).expect("escape symlink");
+
+    let markdown = r#"![Cover](<images/cover image.png>)
+[Guide](guide.md#intro)
+[Manual](manual.pdf)
+[Website](https://example.com/docs)
+[Email](mailto:reader@example.com)
+[Section](#intro)
+[Traversal](../../secret.txt)
+[Symlink](escape/secret.txt)
+"#;
+
+    let html = render_project(
+        markdown,
+        project.path(),
+        Path::new("notes/readme.md"),
+        "project-1",
+    );
+
+    assert!(
+        html.html
+            .contains("src=\"asset://localhost/project-1/notes/images/cover%20image.png\""),
+        "{}",
+        html.html
+    );
+    assert!(
+        html.html
+            .contains("href=\"asset://localhost/project-1/notes/guide.md#intro\"")
+    );
+    assert!(
+        html.html
+            .contains("href=\"asset://localhost/project-1/notes/manual.pdf\"")
+    );
+    assert!(html.html.contains("href=\"https://example.com/docs\""));
+    assert!(html.html.contains("href=\"mailto:reader@example.com\""));
+    assert!(html.html.contains("href=\"#intro\""));
+    assert_eq!(html.html.matches("href=\"#invalid-path\"").count(), 2);
+    assert!(
+        !html
+            .html
+            .contains(outside.path().to_string_lossy().as_ref())
+    );
+}

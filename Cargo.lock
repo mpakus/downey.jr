@@ -2791,7 +2791,9 @@ name = "ps-render"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "ps-core",
  "pulldown-cmark",
+ "tempfile",
 ]
 
 [[package]]
