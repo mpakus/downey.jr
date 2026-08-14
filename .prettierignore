@@ -3,6 +3,7 @@ Cargo.lock
 package-lock.json
 target/
 coverage/
+crates/ps-render/tests/corpus/
 docs/**/*.md
 docs/book/
 ui/dist/
