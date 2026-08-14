@@ -74,7 +74,9 @@ fn raw_html_can_be_enabled_explicitly() {
         },
     );
 
-    assert_eq!(html, "<p><mark data-reader=\"yes\">raw</mark></p>\n");
+    assert!(html.starts_with("<section class=\"chunk\">"));
+    assert!(html.contains("<mark data-reader=\"yes\">raw</mark>"));
+    assert!(html.ends_with("</section>\n"));
 }
 
 #[test]

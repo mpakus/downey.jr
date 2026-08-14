@@ -2,6 +2,7 @@
 
 #![warn(missing_docs)]
 
+mod chunks;
 mod links;
 mod mermaid;
 mod pipeline;
