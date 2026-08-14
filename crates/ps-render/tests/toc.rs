@@ -39,3 +39,17 @@ fn assigns_unique_heading_ids_and_collects_a_toc() {
 
     assert!(render("# Reader").contains("<h1 id=\"reader\">Reader</h1>"));
 }
+
+#[test]
+fn preserves_suffixes_when_explicit_ids_collide() {
+    let rendered = render_document(
+        "# Reserved {#section-1}\n\n# First {#section}\n\n# Second {#section}\n\n# Third {#section}\n",
+    );
+
+    let ids = rendered
+        .toc
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(ids, ["section-1", "section", "section-2", "section-3"]);
+}

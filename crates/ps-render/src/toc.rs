@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use pulldown_cmark::{Event, HeadingLevel, Tag, TagEnd};
 
@@ -19,6 +19,7 @@ pub(crate) struct HeadingIds<'input, 'toc, I> {
     events: I,
     pending: VecDeque<SpannedEvent<'input>>,
     used_ids: HashSet<String>,
+    next_suffixes: HashMap<String, u64>,
     toc: &'toc mut Vec<TocItem>,
 }
 
@@ -31,6 +32,7 @@ where
             events,
             pending: VecDeque::new(),
             used_ids: HashSet::new(),
+            next_suffixes: HashMap::new(),
             toc,
         }
     }
@@ -62,7 +64,7 @@ where
             .filter(|id| !id.is_empty())
             .map(String::from)
             .unwrap_or_else(|| slug(&title));
-        let id = unique_id(base_id, &mut self.used_ids);
+        let id = unique_id(base_id, &mut self.used_ids, &mut self.next_suffixes);
 
         self.toc.push(TocItem {
             level: heading_level(level),
@@ -145,19 +147,24 @@ fn slug(title: &str) -> String {
     }
 }
 
-fn unique_id(base: String, used_ids: &mut HashSet<String>) -> String {
+fn unique_id(
+    base: String,
+    used_ids: &mut HashSet<String>,
+    next_suffixes: &mut HashMap<String, u64>,
+) -> String {
     if used_ids.insert(base.clone()) {
         return base;
     }
 
-    for suffix in 1_u64.. {
+    let mut suffix = next_suffixes.get(&base).copied().unwrap_or(1);
+    loop {
         let candidate = format!("{base}-{suffix}");
+        suffix += 1;
         if used_ids.insert(candidate.clone()) {
+            next_suffixes.insert(base, suffix);
             return candidate;
         }
     }
-
-    base
 }
 
 const fn heading_level(level: HeadingLevel) -> u8 {
