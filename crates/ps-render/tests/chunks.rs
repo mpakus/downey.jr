@@ -8,7 +8,11 @@ fn groups_top_level_blocks_near_sixty_four_kibibytes() {
     let html = render(&format!("{first}\n\n{second}\n\n{third}\n"));
 
     assert_eq!(html.matches("<section class=\"chunk\">").count(), 2);
-    let boundary = html.find("</section>").expect("first chunk boundary");
+    let boundary = html
+        .match_indices("<section class=\"chunk\">")
+        .nth(1)
+        .map(|(index, _)| index)
+        .expect("second chunk");
     assert!(html[..boundary].contains(&first));
     assert!(html[..boundary].contains(&second));
     assert!(!html[..boundary].contains(&third));
@@ -21,7 +25,11 @@ fn never_splits_one_oversized_top_level_block() {
     let html = render(&format!("{oversized}\n\ntail\n"));
 
     assert_eq!(html.matches("<section class=\"chunk\">").count(), 2);
-    let boundary = html.find("</section>").expect("first chunk boundary");
+    let boundary = html
+        .match_indices("<section class=\"chunk\">")
+        .nth(1)
+        .map(|(index, _)| index)
+        .expect("second chunk");
     assert!(html[..boundary].contains(&oversized));
     assert!(html[boundary..].contains("<p>tail</p>"));
 }

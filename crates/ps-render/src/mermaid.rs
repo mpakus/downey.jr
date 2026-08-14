@@ -2,16 +2,18 @@ use std::collections::VecDeque;
 
 use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd, html};
 
+use crate::blocks::SpannedEvent;
+
 pub(crate) struct Mermaid<'input, 'context, I> {
     events: I,
-    pending: VecDeque<Event<'input>>,
+    pending: VecDeque<SpannedEvent<'input>>,
     placeholder_prefix: &'context str,
     figures: &'context mut Vec<String>,
 }
 
 impl<'input, 'context, I> Mermaid<'input, 'context, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = SpannedEvent<'input>>,
 {
     pub(crate) fn new(
         events: I,
@@ -26,10 +28,10 @@ where
         }
     }
 
-    fn queue_figure(&mut self) {
+    fn queue_figure(&mut self, source_range: std::ops::Range<usize>) {
         let mut source = String::new();
 
-        for event in self.events.by_ref() {
+        for (event, _) in self.events.by_ref() {
             match event {
                 Event::End(TagEnd::CodeBlock) => break,
                 Event::Text(text) | Event::Code(text) => source.push_str(&text),
@@ -51,17 +53,18 @@ where
 
         let index = self.figures.len();
         self.figures.push(figure);
-        self.pending.push_back(Event::Text(
-            format!("{}{index}__", self.placeholder_prefix).into(),
+        self.pending.push_back((
+            Event::Text(format!("{}{index}__", self.placeholder_prefix).into()),
+            source_range,
         ));
     }
 }
 
 impl<'input, I> Iterator for Mermaid<'input, '_, I>
 where
-    I: Iterator<Item = Event<'input>>,
+    I: Iterator<Item = SpannedEvent<'input>>,
 {
-    type Item = Event<'input>;
+    type Item = SpannedEvent<'input>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(event) = self.pending.pop_front() {
@@ -69,10 +72,10 @@ where
         }
 
         match self.events.next()? {
-            Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(info)))
+            (Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(info))), source_range)
                 if info.split_whitespace().next() == Some("mermaid") =>
             {
-                self.queue_figure();
+                self.queue_figure(source_range);
                 self.pending.pop_front()
             }
             event => Some(event),
