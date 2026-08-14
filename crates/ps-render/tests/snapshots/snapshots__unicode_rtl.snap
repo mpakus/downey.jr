@@ -1,0 +1,14 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/unicode-rtl.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="da12ed9400080fc0fd923abb8b78a3c5998d361b8a7f410f6bf6f964d4d339e4">
+<h1 id="привет-мир">Привет, мир! 🚀</h1>
+</section>
+<section data-block="1" data-src-line="3" data-hash="f49f1310674a38e84836029facacc3ad9cf3b433a2f0b07442b5e25466436d59">
+<p>Текст с emoji: 👩🏽‍💻 ✨</p>
+</section>
+<section data-block="2" data-src-line="5" data-hash="b1372c6e4aac4fb93c9035a64eab55e37c7e9df3770c0c597fab5d6ae0f27082">
+<p>مرحبا بالعالم</p>
+</section>
+</section>

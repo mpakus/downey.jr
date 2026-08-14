@@ -16,4 +16,5 @@ pulldown-cmark = { version = "0.13.4", default-features = false, features = ["ht
 thiserror = "2.0.20"
 
 [dev-dependencies]
+insta = { version = "1.48.0", default-features = false }
 tempfile = "3.27.0"

@@ -1,0 +1,9 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/mermaid.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="c7b622c56349cc98ac0cde6856d8377b848d069580b741c8b14e642c7a098171"><figure class="mermaid" data-hash="ce3702119ce18243c9e87c5961d137e392c0c03825099ecdcc6668ec0c1570e9"><template>graph TD
+  Start --&gt; Done
+</template></figure>
+</section>
+</section>

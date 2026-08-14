@@ -1,0 +1,9 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: summary
+---
+input_bytes: 5242880
+output_bytes: 6476677
+blocks: 1
+chunks: 1
+output_hash: 263f0a728269b71f18397f4dcf5517cedab7b337663f8a9ee32f52883930402b

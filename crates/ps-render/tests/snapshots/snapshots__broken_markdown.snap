@@ -1,0 +1,12 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/broken-markdown.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="2ae28117306efce823f45047d920e88f6f1e026bd68cb92f7a0e21e8b0916836">
+<p>Broken **strong and [link](</p>
+</section>
+<section data-block="1" data-src-line="3" data-hash="3b16eaf043d71e93d5fba039918a523f233de807edb75a65f4631fae0a78008a">
+<pre><code class="language-rust">fn unfinished() {
+</code></pre>
+</section>
+</section>

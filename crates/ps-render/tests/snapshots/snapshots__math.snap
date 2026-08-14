@@ -1,0 +1,13 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/math.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="1c7e4a87220632a13f4841bd64601a19cc6bcb3219739e941f9dddf66e97e84a">
+<p>Inline math: <span class="math math-inline">x + y</span>.</p>
+</section>
+<section data-block="1" data-src-line="3" data-hash="6b64640827a80e4d3797c6d89ad69d6d5d12b8014a9fae40bb50506659424370">
+<p><span class="math math-display">
+z = x^2
+</span></p>
+</section>
+</section>

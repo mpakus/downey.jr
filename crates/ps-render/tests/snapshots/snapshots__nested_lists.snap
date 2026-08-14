@@ -1,0 +1,23 @@
+---
+source: crates/ps-render/tests/snapshots.rs
+expression: "render(include_str! (\"corpus/nested-lists.md\"))"
+---
+<section class="chunk"><section data-block="0" data-src-line="1" data-hash="935ca21efc60404be163ce335836eb8fc6a2317752fa1dd58ca0afa6e4fbb19a">
+<ol>
+<li>
+<p>First</p>
+<ul>
+<li>Nested
+<ul>
+<li>Deep</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Second</p>
+<p>Continued paragraph.</p>
+</li>
+</ol>
+</section>
+</section>
