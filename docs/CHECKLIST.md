@@ -78,7 +78,7 @@
   - Приёмка: подсветка даёт классы, а не инлайновые стили; вклад в размер бинарника < 3 MB (`cargo-bloat`).
 - [x] **T-033** `mermaid.rs`: перехват fenced-блоков `mermaid` → `<figure class="mermaid" data-hash>` с исходником в `<template>`. (← T-030)
 - [x] **T-034** `links.rs`: переписывание относительных путей изображений и ссылок в `asset://`, проверка выхода за корень проекта, различение внешних ссылок и ссылок на `.md`. (← T-030, T-020)
-- [ ] **T-035** `sanitize.rs`: `ammonia` при `allow_raw_html=false`; запрет `javascript:` и `data:` в `href`. (← T-030)
+- [x] **T-035** `sanitize.rs`: `ammonia` при `allow_raw_html=false`; запрет `javascript:` и `data:` в `href`. (← T-030)
   - Приёмка: тест-корпус XSS-векторов, ни один не проходит.
 - [ ] **T-036** Разбиение на чанки по границам блоков верхнего уровня (~64 KB), обёртка в `<section class="chunk">` с `content-visibility:auto`. (← T-030)
 - [ ] **T-036a** `blocks.rs`: переход на `Parser::into_offset_iter`, разбиение на блоки верхнего уровня с байтовыми диапазонами, `data-block="<i>"` и `data-src-line="<n>"` на каждом блоке, blake3 каждого блока. Фундамент для P9. (← T-030)

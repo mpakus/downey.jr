@@ -1,20 +1,28 @@
 use std::collections::VecDeque;
 
-use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd, html};
 
-pub(crate) struct Mermaid<'input, I> {
+pub(crate) struct Mermaid<'input, 'context, I> {
     events: I,
     pending: VecDeque<Event<'input>>,
+    placeholder_prefix: &'context str,
+    figures: &'context mut Vec<String>,
 }
 
-impl<'input, I> Mermaid<'input, I>
+impl<'input, 'context, I> Mermaid<'input, 'context, I>
 where
     I: Iterator<Item = Event<'input>>,
 {
-    pub(crate) fn new(events: I) -> Self {
+    pub(crate) fn new(
+        events: I,
+        placeholder_prefix: &'context str,
+        figures: &'context mut Vec<String>,
+    ) -> Self {
         Self {
             events,
             pending: VecDeque::new(),
+            placeholder_prefix,
+            figures,
         }
     }
 
@@ -31,16 +39,25 @@ where
         }
 
         let hash = blake3::hash(source.as_bytes()).to_hex();
-        self.pending.push_back(Event::Html(
-            format!("<figure class=\"mermaid\" data-hash=\"{hash}\"><template>").into(),
+        let figure_events = [
+            Event::Html(
+                format!("<figure class=\"mermaid\" data-hash=\"{hash}\"><template>").into(),
+            ),
+            Event::Text(source.into()),
+            Event::Html("</template></figure>\n".into()),
+        ];
+        let mut figure = String::new();
+        html::push_html(&mut figure, figure_events.into_iter());
+
+        let index = self.figures.len();
+        self.figures.push(figure);
+        self.pending.push_back(Event::Text(
+            format!("{}{index}__", self.placeholder_prefix).into(),
         ));
-        self.pending.push_back(Event::Text(source.into()));
-        self.pending
-            .push_back(Event::Html("</template></figure>\n".into()));
     }
 }
 
-impl<'input, I> Iterator for Mermaid<'input, I>
+impl<'input, I> Iterator for Mermaid<'input, '_, I>
 where
     I: Iterator<Item = Event<'input>>,
 {
