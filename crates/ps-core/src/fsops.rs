@@ -374,6 +374,40 @@ where
     Ok(outcomes)
 }
 
+/// Moves project items to the operating system Trash.
+///
+/// Every `pre_trash` snapshot hook runs successfully before the Trash operation
+/// begins. This hook is the integration point for the history store in T-200.
+pub fn trash<B>(project_root: &Path, items: &[PathBuf], before_trash: B) -> Result<()>
+where
+    B: FnMut(&Path) -> Result<()>,
+{
+    trash_items_with(project_root, items, before_trash, |paths| {
+        ::trash::delete_all(paths).map_err(|source| Error::Trash { source })
+    })
+}
+
+/// Permanently deletes project items after all pre-delete snapshots succeed.
+///
+/// The UI must expose this separately from [`trash`] and require explicit user
+/// confirmation before calling it.
+pub fn permanently_delete<B>(
+    project_root: &Path,
+    items: &[PathBuf],
+    mut before_delete: B,
+) -> Result<()>
+where
+    B: FnMut(&Path) -> Result<()>,
+{
+    let mut resolved = resolve_delete_paths(project_root, items)?;
+    snapshot_all(&resolved, &mut before_delete)?;
+    resolved.sort_by_key(|path| std::cmp::Reverse(path.components().count()));
+    for path in resolved {
+        remove_user_item(&path)?;
+    }
+    Ok(())
+}
+
 impl MoveOutcome {
     fn with_from(self, from: PathBuf) -> Self {
         match self {
@@ -786,6 +820,56 @@ fn reject_symlink(path: &Path, metadata: &fs::Metadata) -> Result<()> {
     }
 }
 
+fn trash_items_with<B, D>(
+    project_root: &Path,
+    items: &[PathBuf],
+    mut before_trash: B,
+    delete_all: D,
+) -> Result<()>
+where
+    B: FnMut(&Path) -> Result<()>,
+    D: FnOnce(&[PathBuf]) -> Result<()>,
+{
+    let resolved = resolve_delete_paths(project_root, items)?;
+    snapshot_all(&resolved, &mut before_trash)?;
+    delete_all(&resolved)
+}
+
+fn resolve_delete_paths(project_root: &Path, items: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let mut resolved = Vec::with_capacity(items.len());
+    for item in items {
+        let path = resolve_child(project_root, item)?;
+        fs::symlink_metadata(&path)
+            .map_err(|source| Error::io("open the item to delete", &path, source))?;
+        if !resolved.contains(&path) {
+            resolved.push(path);
+        }
+    }
+    Ok(resolved)
+}
+
+fn snapshot_all<B>(paths: &[PathBuf], before_delete: &mut B) -> Result<()>
+where
+    B: FnMut(&Path) -> Result<()>,
+{
+    for path in paths {
+        before_delete(path)?;
+    }
+    Ok(())
+}
+
+fn remove_user_item(path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|source| Error::io("inspect the item to permanently delete", path, source))?;
+    if metadata.is_dir() && !metadata.file_type().is_symlink() {
+        fs::remove_dir_all(path)
+            .map_err(|source| Error::io("permanently delete the folder", path, source))
+    } else {
+        fs::remove_file(path)
+            .map_err(|source| Error::io("permanently delete the file", path, source))
+    }
+}
+
 #[cfg(unix)]
 fn same_volume(source: &Path, destination_dir: &Path) -> Result<bool> {
     use std::os::unix::fs::MetadataExt;
@@ -1053,6 +1137,44 @@ fn unsafe_path(path: impl Into<PathBuf>, reason: &'static str) -> Error {
     Error::UnsafePath {
         path: path.into(),
         reason,
+    }
+}
+
+#[cfg(test)]
+mod trash_tests {
+    use std::fs;
+
+    use super::*;
+
+    #[test]
+    fn trash_routes_only_resolved_snapshotted_paths_to_the_executor() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let root = temp.path().join("project");
+        fs::create_dir(&root).expect("project directory");
+        fs::write(root.join("draft.md"), b"Draft").expect("draft file");
+        let mut snapshots = Vec::new();
+        let mut deleted = Vec::new();
+
+        trash_items_with(
+            &root,
+            &[PathBuf::from("draft.md"), PathBuf::from("draft.md")],
+            |path| {
+                snapshots.push(path.to_path_buf());
+                Ok(())
+            },
+            |paths| {
+                deleted.extend_from_slice(paths);
+                Ok(())
+            },
+        )
+        .expect("trash routing");
+
+        assert_eq!(snapshots.len(), 1);
+        assert_eq!(deleted, snapshots);
+        assert_eq!(
+            fs::read(root.join("draft.md")).expect("fake executor"),
+            b"Draft"
+        );
     }
 }
 
