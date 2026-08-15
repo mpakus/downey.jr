@@ -10,6 +10,7 @@ Code blocks need broad syntax coverage while theme changes must stay within the 
 ## Decision
 
 Use `syntect` with the pure-Rust `regex-fancy` backend and `ClassedHTMLGenerator`. Emit semantic highlight classes and resolve their colors through theme CSS variables. Load the shared `SyntaxSet` lazily through `OnceLock`.
+Prefix generated scope classes with `syntax-` to keep the renderer-to-theme contract isolated from application classes.
 
 ## Alternatives
 

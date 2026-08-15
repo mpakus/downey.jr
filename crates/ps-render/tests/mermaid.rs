@@ -16,7 +16,8 @@ fn turns_mermaid_fences_into_hashed_safe_templates() {
     assert!(html.contains("&lt;/template&gt;&lt;script&gt;alert(1)&lt;/script&gt;"));
     assert!(html.contains("</template></figure>"));
     assert!(html.ends_with("</section>\n"));
-    assert!(html.contains("<pre><code class=\"language-rust\">"));
+    assert!(html.contains("<pre class=\"code\"><code class=\"language-rust\">"));
+    assert!(html.contains("class=\"syntax-source syntax-rust\""));
     assert!(!html.contains("<script>alert(1)</script>"));
 
     let hash = html
