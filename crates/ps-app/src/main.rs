@@ -2,8 +2,20 @@
 
 #![warn(missing_docs)]
 
-fn main() {
+use std::error::Error;
+
+use ps_core::paths::AppPaths;
+
+mod state;
+
+use state::AppState;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let state = AppState::open(AppPaths::discover()?)?;
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .manage(state)
         .run(tauri::generate_context!())
-        .expect("failed to run 1537paperstreet");
+        .map_err(Into::into)
 }
