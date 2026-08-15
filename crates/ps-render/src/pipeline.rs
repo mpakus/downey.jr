@@ -6,6 +6,7 @@ use pulldown_cmark::{Options, Parser, html};
 
 use crate::blocks::{BlockEvent, Blocks, RenderedBlock, SpannedEvent};
 use crate::chunks::{CLOSE_SECTION, Chunks, OPEN_SECTION};
+use crate::highlight::Highlight;
 use crate::links::Links;
 use crate::mermaid::Mermaid;
 use crate::sanitize;
@@ -128,7 +129,7 @@ fn finish_render<'events>(
     let mermaid_prefix = if markdown.contains("mermaid") {
         let prefix = format!("PSMERMAID{}__", blake3::hash(markdown.as_bytes()).to_hex());
         render_events(
-            Mermaid::new(events, &prefix, &mut mermaid_figures),
+            Highlight::new(Mermaid::new(events, &prefix, &mut mermaid_figures)),
             has_headings,
             &mut output,
             &mut toc,
@@ -138,7 +139,7 @@ fn finish_render<'events>(
         Some(prefix)
     } else {
         render_events(
-            events,
+            Highlight::new(events),
             has_headings,
             &mut output,
             &mut toc,
@@ -192,22 +193,22 @@ fn may_have_heading(markdown: &str) -> bool {
 }
 
 fn normalize_parser_input(markdown: &str) -> Cow<'_, str> {
-    if !markdown.chars().any(is_unsupported_control) {
+    if !needs_parser_normalization(markdown) {
         return Cow::Borrowed(markdown);
     }
 
-    Cow::Owned(
-        markdown
-            .chars()
-            .map(|character| {
-                if is_unsupported_control(character) {
-                    ' '
-                } else {
-                    character
-                }
-            })
-            .collect(),
-    )
+    let mut normalized = String::with_capacity(markdown.len());
+    let mut characters = markdown.chars().peekable();
+    while let Some(character) = characters.next() {
+        if is_unsupported_control(character) {
+            normalized.push('?');
+        } else if character == '\r' && characters.peek() != Some(&'\n') {
+            normalized.push('\n');
+        } else {
+            normalized.push(character);
+        }
+    }
+    Cow::Owned(normalized)
 }
 
 fn is_unsupported_control(character: char) -> bool {
@@ -215,6 +216,14 @@ fn is_unsupported_control(character: char) -> bool {
         character,
         '\0'..='\u{0008}' | '\u{000B}'..='\u{000C}' | '\u{000E}'..='\u{001F}' | '\u{007F}'
     )
+}
+
+fn needs_parser_normalization(markdown: &str) -> bool {
+    let bytes = markdown.as_bytes();
+    bytes.iter().enumerate().any(|(index, byte)| {
+        matches!(*byte, 0..=8 | 11..=12 | 14..=31 | 127)
+            || (*byte == b'\r' && bytes.get(index + 1) != Some(&b'\n'))
+    })
 }
 
 fn markdown_options() -> Options {

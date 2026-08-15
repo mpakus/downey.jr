@@ -45,3 +45,15 @@ fn minimized_fuzz_regression_for_malformed_task_list() {
 
     assert!(!html.is_empty());
 }
+
+#[test]
+fn minimized_fuzz_regression_for_lone_carriage_return() {
+    let bytes = [
+        13, 45, 32, 91, 97, 93, 58, 110, 10, 12, 12, 12, 12, 12, 12, 10,
+    ];
+    let markdown = String::from_utf8_lossy(&bytes);
+
+    let html = render(&markdown);
+
+    assert!(!html.is_empty());
+}
