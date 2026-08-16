@@ -86,15 +86,7 @@ pub fn read_dir(project_root: &Path, rel_path: &Path, show_hidden: bool) -> Resu
         let file_type = entry
             .file_type()
             .map_err(|source| Error::io("inspect a tree entry", entry.path(), source))?;
-        let kind = if file_type.is_dir() {
-            TreeNodeKind::Directory
-        } else if file_type.is_file() {
-            TreeNodeKind::File
-        } else if file_type.is_symlink() {
-            TreeNodeKind::Symlink
-        } else {
-            TreeNodeKind::Other
-        };
+        let kind = kind_from_file_type(file_type);
         nodes.push(SortableNode {
             folded_name: name.to_lowercase(),
             node: TreeNode {
@@ -112,6 +104,66 @@ pub fn read_dir(project_root: &Path, rel_path: &Path, show_hidden: bool) -> Resu
             .then_with(|| left.node.name.cmp(&right.node.name))
     });
     Ok(nodes.into_iter().map(|node| node.node).collect())
+}
+
+/// Builds a tree node for an existing absolute path inside a project.
+///
+/// Symbolic links are inspected without being followed. The last path component
+/// is NFC-normalized so the node matches [`read_dir`].
+pub fn node_at(project_root: &Path, absolute: &Path) -> Result<TreeNode> {
+    let canonical_root = project_root
+        .canonicalize()
+        .map_err(|source| Error::io("open the project directory", project_root, source))?;
+    let metadata = fs::symlink_metadata(absolute)
+        .map_err(|source| Error::io("inspect the path", absolute, source))?;
+    let file_name = absolute.file_name().ok_or_else(|| Error::UnsafePath {
+        path: absolute.to_path_buf(),
+        reason: "the path does not have a file name",
+    })?;
+    let parent = absolute.parent().ok_or_else(|| Error::UnsafePath {
+        path: absolute.to_path_buf(),
+        reason: "the path does not have a parent folder",
+    })?;
+    let canonical_parent = parent
+        .canonicalize()
+        .map_err(|source| Error::io("open the path's parent directory", parent, source))?;
+    let canonical = canonical_parent.join(file_name);
+    let rel = canonical
+        .strip_prefix(&canonical_root)
+        .map_err(|_| Error::PathOutsideProject {
+            path: canonical.clone(),
+        })?;
+    if rel.as_os_str().is_empty() {
+        return Err(Error::UnsafePath {
+            path: absolute.to_path_buf(),
+            reason: "the project root is not a tree item",
+        });
+    }
+    let name = file_name
+        .to_str()
+        .ok_or_else(|| Error::UnsafePath {
+            path: absolute.to_path_buf(),
+            reason: "file names must be valid Unicode",
+        })?
+        .nfc()
+        .collect::<String>();
+    Ok(TreeNode {
+        rel_path: rel.with_file_name(&name),
+        name,
+        kind: kind_from_file_type(metadata.file_type()),
+    })
+}
+
+fn kind_from_file_type(file_type: fs::FileType) -> TreeNodeKind {
+    if file_type.is_dir() {
+        TreeNodeKind::Directory
+    } else if file_type.is_file() {
+        TreeNodeKind::File
+    } else if file_type.is_symlink() {
+        TreeNodeKind::Symlink
+    } else {
+        TreeNodeKind::Other
+    }
 }
 
 fn directory_rank(kind: TreeNodeKind) -> u8 {

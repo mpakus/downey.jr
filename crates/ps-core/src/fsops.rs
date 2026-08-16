@@ -5,6 +5,8 @@ use std::io::{self, Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{Error, Result};
@@ -15,7 +17,8 @@ const COPY_BUFFER_BYTES: usize = 1024 * 1024;
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
 /// The action to take when a copy destination already exists.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub enum ConflictStrategy {
     /// Snapshot and replace the destination.
     Replace,

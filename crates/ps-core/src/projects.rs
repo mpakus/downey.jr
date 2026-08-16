@@ -139,6 +139,16 @@ impl ProjectStore {
         &self.store.value().projects
     }
 
+    /// Returns a registered project by identifier.
+    pub fn get(&self, id: &str) -> Result<&Project> {
+        self.store
+            .value()
+            .projects
+            .iter()
+            .find(|project| project.id == id)
+            .ok_or_else(|| Error::ProjectNotFound { id: id.to_owned() })
+    }
+
     /// Registers an absolute project folder path.
     pub fn add(&mut self, name: impl Into<String>, path: PathBuf) -> Result<Project> {
         let project = Project {

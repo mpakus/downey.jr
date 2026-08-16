@@ -287,6 +287,8 @@ relPath: string,
  */
 kind: TreeNodeKind, };
 
+export type ConflictStrategy = "replace" | "keepBoth" | "skip";
+
 export type WatchUpdate = { "pathsChanged": { 
 /**
  * Sorted, deduplicated project-relative paths.

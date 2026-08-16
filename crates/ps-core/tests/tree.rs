@@ -81,6 +81,50 @@ fn identifies_symlinks_without_following_them() {
 }
 
 #[test]
+fn node_at_matches_read_dir_for_the_same_path() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir_all(root.join("inbox")).expect("project directory");
+    fs::write(root.join("inbox/note.md"), b"Note").expect("tree file");
+
+    let listed = tree::read_dir(&root, Path::new("inbox"), false).expect("tree nodes");
+    let note = listed
+        .iter()
+        .find(|node| node.name == "note.md")
+        .expect("listed note");
+    let from_absolute = tree::node_at(&root, &root.join("inbox/note.md")).expect("absolute node");
+
+    assert_eq!(from_absolute, *note);
+}
+
+#[test]
+fn node_at_rejects_paths_outside_the_project() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(temp.path().join("outside.md"), b"no").expect("outside file");
+
+    assert!(tree::node_at(&root, &temp.path().join("outside.md")).is_err());
+    assert!(tree::node_at(&root, &root).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn node_at_identifies_symlinks_without_following_them() {
+    use std::os::unix::fs::symlink;
+
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(root.join("target.md"), b"Target").expect("target file");
+    symlink(root.join("target.md"), root.join("alias.md")).expect("symlink");
+
+    let alias = tree::node_at(&root, &root.join("alias.md")).expect("alias node");
+    assert_eq!(alias.kind, TreeNodeKind::Symlink);
+    assert_eq!(alias.name, "alias.md");
+}
+
+#[test]
 fn rejects_directories_outside_the_project() {
     let temp = tempfile::tempdir().expect("temporary directory");
     let root = temp.path().join("project");

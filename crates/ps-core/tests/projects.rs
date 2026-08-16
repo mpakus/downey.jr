@@ -27,7 +27,8 @@ fn project_crud_never_modifies_the_project_directory() {
     store
         .rename(&project.id, "Writing")
         .expect("renamed project");
-    assert_eq!(store.list()[0].name, "Writing");
+    assert_eq!(store.get(&project.id).expect("found").name, "Writing");
+    assert!(store.get("missing").is_err());
     store.remove(&project.id).expect("removed project record");
     store.flush().expect("saved project list");
 
