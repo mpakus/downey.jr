@@ -247,6 +247,30 @@ accent: string | null,
  */
 last_file: string | null, };
 
+export type ProjectsListQuery = { 
+/**
+ * Optional fuzzy query over project names and paths.
+ */
+query: string | null, 
+/**
+ * Maximum number of projects to return.
+ */
+limit: number, 
+/**
+ * Number of ranked matches to skip.
+ */
+offset: number, };
+
+export type ProjectsListResult = { 
+/**
+ * Projects in the requested page.
+ */
+items: Array<Project>, 
+/**
+ * Number of projects matching the query before paging.
+ */
+total: number, };
+
 export type TreeNodeKind = "directory" | "file" | "symlink" | "other";
 
 export type TreeNode = { 

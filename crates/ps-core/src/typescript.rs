@@ -5,7 +5,7 @@ use ts_rs::{Config as TsConfig, TS};
 use crate::config::{
     Appearance, Config, Editor, Files, History, Typography, Updates, ViewMode, Viewer, Window,
 };
-use crate::projects::Project;
+use crate::projects::{Project, ProjectsListQuery, ProjectsListResult};
 use crate::tree::{TreeNode, TreeNodeKind};
 use crate::watch::WatchUpdate;
 
@@ -30,6 +30,8 @@ pub fn ipc_typescript() -> String {
         Updates::decl(&ts),
         Config::decl(&ts),
         Project::decl(&ts),
+        ProjectsListQuery::decl(&ts),
+        ProjectsListResult::decl(&ts),
         TreeNodeKind::decl(&ts),
         TreeNode::decl(&ts),
         WatchUpdate::decl(&ts),

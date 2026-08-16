@@ -44,3 +44,15 @@ fn index_updates_and_removes_projects_incrementally() {
     assert!(search.search("new", 10).is_empty());
     assert!(!search.remove("one"));
 }
+
+#[test]
+fn page_skips_offset_and_reports_total() {
+    let mut search = ProjectSearch::new();
+    search.upsert(project("one", "Alpha Notes", "/tmp/alpha"));
+    search.upsert(project("two", "Alpha Recipes", "/tmp/recipes"));
+    search.upsert(project("three", "Beta", "/tmp/beta"));
+
+    let (items, total) = search.page("alpha", 1, 1);
+    assert_eq!(total, 2);
+    assert_eq!(items.len(), 1);
+}

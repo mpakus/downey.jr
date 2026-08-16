@@ -37,6 +37,28 @@ pub struct Project {
     pub available: Option<bool>,
 }
 
+/// Arguments for `projects_list`.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectsListQuery {
+    /// Optional fuzzy query over project names and paths.
+    pub query: Option<String>,
+    /// Maximum number of projects to return.
+    pub limit: u32,
+    /// Number of ranked matches to skip.
+    pub offset: u32,
+}
+
+/// A page of registered projects.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectsListResult {
+    /// Projects in the requested page.
+    pub items: Vec<Project>,
+    /// Number of projects matching the query before paging.
+    pub total: u32,
+}
+
 impl Project {
     fn validate(&self) -> Result<()> {
         if self.name.trim().is_empty() {
