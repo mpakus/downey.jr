@@ -7,6 +7,7 @@ use std::error::Error;
 use ps_core::paths::AppPaths;
 
 mod commands;
+mod menu;
 mod state;
 
 use commands::{
@@ -22,6 +23,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(state)
+        .setup(|app| {
+            crate::menu::install(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             config_get,
             config_set,
