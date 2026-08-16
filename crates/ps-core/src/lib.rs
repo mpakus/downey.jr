@@ -3,6 +3,7 @@
 #![warn(missing_docs)]
 
 pub mod config;
+pub mod docio;
 pub mod error;
 pub mod fsops;
 pub mod paths;

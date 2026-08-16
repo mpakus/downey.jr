@@ -2846,6 +2846,7 @@ name = "ps-app"
 version = "0.1.0"
 dependencies = [
  "ps-core",
+ "ps-render",
  "tauri",
  "tauri-build",
  "tauri-plugin-window-state",
@@ -2856,6 +2857,7 @@ dependencies = [
 name = "ps-core"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "criterion",
  "notify",
  "nucleo",

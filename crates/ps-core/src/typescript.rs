@@ -5,6 +5,10 @@ use ts_rs::{Config as TsConfig, TS};
 use crate::config::{
     Appearance, Config, Editor, Files, History, Typography, Updates, ViewMode, Viewer, Window,
 };
+use crate::docio::{
+    DocChunkEvent, DocDoneEvent, DocOpenResult, DocumentEncoding, DocumentMeta, DocumentSource,
+    LineEnding, TocEntry,
+};
 use crate::fsops::ConflictStrategy;
 use crate::projects::{Project, ProjectsListQuery, ProjectsListResult};
 use crate::tree::{TreeNode, TreeNodeKind};
@@ -36,6 +40,14 @@ pub fn ipc_typescript() -> String {
         TreeNodeKind::decl(&ts),
         TreeNode::decl(&ts),
         ConflictStrategy::decl(&ts),
+        LineEnding::decl(&ts),
+        DocumentEncoding::decl(&ts),
+        TocEntry::decl(&ts),
+        DocumentSource::decl(&ts),
+        DocumentMeta::decl(&ts),
+        DocOpenResult::decl(&ts),
+        DocChunkEvent::decl(&ts),
+        DocDoneEvent::decl(&ts),
         WatchUpdate::decl(&ts),
     ];
 

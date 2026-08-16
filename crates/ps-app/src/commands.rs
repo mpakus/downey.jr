@@ -3,10 +3,11 @@
 use std::path::PathBuf;
 
 use ps_core::config::Config;
+use ps_core::docio::{DocChunkEvent, DocDoneEvent, DocOpenResult, DocumentSource};
 use ps_core::fsops::ConflictStrategy;
 use ps_core::projects::{Project, ProjectsListQuery, ProjectsListResult};
 use ps_core::tree::TreeNode;
-use tauri::State;
+use tauri::{Emitter, State};
 
 use crate::state::AppState;
 
@@ -165,4 +166,61 @@ pub(crate) async fn fs_trash(
         .await
         .map_err(|error| error.to_string())
         .and_then(|result| result.map_err(to_command_error))
+}
+
+#[tauri::command]
+pub(crate) async fn doc_source(
+    state: State<'_, AppState>,
+    project_id: String,
+    rel_path: PathBuf,
+) -> Result<DocumentSource, String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || state.doc_source(project_id, rel_path))
+        .await
+        .map_err(|error| error.to_string())
+        .and_then(|result| result.map_err(to_command_error))
+}
+
+#[tauri::command]
+pub(crate) async fn doc_open(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    project_id: String,
+    rel_path: PathBuf,
+) -> Result<DocOpenResult, String> {
+    let state = state.inner().clone();
+    let prepared =
+        tauri::async_runtime::spawn_blocking(move || state.doc_open(project_id, rel_path))
+            .await
+            .map_err(|error| error.to_string())
+            .and_then(|result| result.map_err(to_command_error))?;
+
+    let result = prepared.result;
+    let remaining_chunks = prepared.remaining_chunks;
+    let project_id = result.meta.project_id.clone();
+    let rel_path = result.meta.rel_path.clone();
+    let chunk_count = result.meta.chunk_count;
+    tauri::async_runtime::spawn(async move {
+        for (offset, html) in remaining_chunks.into_iter().enumerate() {
+            let index = u32::try_from(offset.saturating_add(1)).unwrap_or(u32::MAX);
+            let _ = app.emit(
+                "doc://chunk",
+                DocChunkEvent {
+                    project_id: project_id.clone(),
+                    rel_path: rel_path.clone(),
+                    index,
+                    html,
+                },
+            );
+        }
+        let _ = app.emit(
+            "doc://done",
+            DocDoneEvent {
+                project_id,
+                rel_path,
+                chunk_count,
+            },
+        );
+    });
+    Ok(result)
 }

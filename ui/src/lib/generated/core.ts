@@ -289,6 +289,134 @@ kind: TreeNodeKind, };
 
 export type ConflictStrategy = "replace" | "keepBoth" | "skip";
 
+export type LineEnding = "lf" | "crlf";
+
+export type DocumentEncoding = "utf8" | "binary";
+
+export type TocEntry = { 
+/**
+ * Heading depth from 1 through 6.
+ */
+level: number, 
+/**
+ * Plain-text heading label.
+ */
+title: string, 
+/**
+ * Unique HTML identifier assigned to the heading.
+ */
+id: string, };
+
+export type DocumentSource = { 
+/**
+ * Decoded text. Empty when the file is not valid UTF-8.
+ */
+text: string, 
+/**
+ * Dominant line ending in the file.
+ */
+eol: LineEnding, 
+/**
+ * Whether the file began with a UTF-8 BOM.
+ */
+bom: boolean, 
+/**
+ * Detected encoding.
+ */
+encoding: DocumentEncoding, 
+/**
+ * Whether the document can be edited and saved.
+ */
+writable: boolean, 
+/**
+ * Why the document is read-only, when it is.
+ */
+readonlyReason: string | null, };
+
+export type DocumentMeta = { 
+/**
+ * Registered project that owns the file.
+ */
+projectId: string, 
+/**
+ * NFC-normalized path relative to the project root.
+ */
+relPath: string, 
+/**
+ * First heading title, or the file stem when the document has none.
+ */
+title: string, 
+/**
+ * Lowercase hexadecimal BLAKE3 hash of the on-disk bytes.
+ */
+hash: string, 
+/**
+ * Size of the on-disk file in bytes.
+ */
+size: number, 
+/**
+ * Whether the document can be edited and saved.
+ */
+writable: boolean, 
+/**
+ * Why the document is read-only or source-only, when it is.
+ */
+readonlyReason: string | null, 
+/**
+ * Whether Markdown rendering was skipped.
+ */
+sourceOnly: boolean, 
+/**
+ * Number of HTML chunks produced for the viewer.
+ */
+chunkCount: number, 
+/**
+ * Headings in source order.
+ */
+toc: Array<TocEntry>, };
+
+export type DocOpenResult = { 
+/**
+ * Document identity, hash, and table of contents.
+ */
+meta: DocumentMeta, 
+/**
+ * First viewer chunk, when the document was rendered.
+ */
+firstChunk: string | null, };
+
+export type DocChunkEvent = { 
+/**
+ * Registered project that owns the file.
+ */
+projectId: string, 
+/**
+ * NFC-normalized path relative to the project root.
+ */
+relPath: string, 
+/**
+ * Zero-based chunk index. Index `0` is returned by `doc_open`.
+ */
+index: number, 
+/**
+ * One `<section class="chunk">` fragment.
+ */
+html: string, };
+
+export type DocDoneEvent = { 
+/**
+ * Registered project that owns the file.
+ */
+projectId: string, 
+/**
+ * NFC-normalized path relative to the project root.
+ */
+relPath: string, 
+/**
+ * Number of HTML chunks produced for the viewer.
+ */
+chunkCount: number, };
+
 export type WatchUpdate = { "pathsChanged": { 
 /**
  * Sorted, deduplicated project-relative paths.

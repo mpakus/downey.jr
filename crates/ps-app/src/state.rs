@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use ps_core::config::Config;
+use ps_core::docio::{self, DocOpenResult, DocumentMeta, DocumentSource, LoadedDocument, TocEntry};
 use ps_core::fsops::{self, ConflictStrategy, CopyOutcome, MoveOutcome};
 use ps_core::paths::AppPaths;
 use ps_core::projects::{Project, ProjectStore, ProjectsListQuery, ProjectsListResult};
@@ -230,6 +231,82 @@ impl AppState {
         fsops::trash(&root, &rel_paths, pending_history_snapshot)
     }
 
+    pub(crate) fn doc_source(
+        &self,
+        project_id: String,
+        rel_path: PathBuf,
+    ) -> Result<DocumentSource> {
+        Ok(self.load_document(&project_id, &rel_path)?.source)
+    }
+
+    pub(crate) fn doc_open(
+        &self,
+        project_id: String,
+        rel_path: PathBuf,
+    ) -> Result<PreparedDocument> {
+        let root = self.project_root(&project_id)?;
+        let loaded = docio::read_doc(&root, &rel_path)?;
+        let allow_raw_html = self.config_get().viewer.allow_raw_html;
+
+        let (toc, mut chunks) = if loaded.source_only {
+            (Vec::new(), Vec::new())
+        } else {
+            let rendered = ps_render::render_project_with_options(
+                &loaded.source.text,
+                &root,
+                &rel_path,
+                &project_id,
+                ps_render::RenderOptions { allow_raw_html },
+            );
+            let toc = rendered
+                .toc
+                .into_iter()
+                .map(|item| TocEntry {
+                    level: item.level,
+                    title: item.title,
+                    id: item.id,
+                })
+                .collect();
+            let chunks = ps_render::html_chunks(&rendered.html)
+                .into_iter()
+                .map(str::to_owned)
+                .collect();
+            (toc, chunks)
+        };
+
+        let chunk_count = u32::try_from(chunks.len()).unwrap_or(u32::MAX);
+        let first_chunk = if chunks.is_empty() {
+            None
+        } else {
+            Some(chunks.remove(0))
+        };
+        let title = document_title(&rel_path, &toc);
+
+        Ok(PreparedDocument {
+            result: DocOpenResult {
+                meta: DocumentMeta {
+                    project_id,
+                    rel_path,
+                    title,
+                    hash: loaded.hash,
+                    size: loaded.size,
+                    writable: loaded.source.writable,
+                    readonly_reason: loaded.source.readonly_reason,
+                    source_only: loaded.source_only,
+                    chunk_count,
+                    toc,
+                },
+                first_chunk,
+            },
+            remaining_chunks: chunks,
+        })
+    }
+
+    fn load_document(&self, project_id: &str, rel_path: &Path) -> Result<LoadedDocument> {
+        let root = self.project_root(project_id)?;
+        docio::read_doc(&root, rel_path)
+    }
+
     fn project_root(&self, id: &str) -> Result<PathBuf> {
         let projects = self
             .projects
@@ -247,6 +324,29 @@ impl AppState {
 /// History snapshots for destructive filesystem operations land in T-200.
 fn pending_history_snapshot(_: &Path) -> Result<()> {
     Ok(())
+}
+
+/// Rendered document ready for the `doc_open` command to return and stream.
+pub(crate) struct PreparedDocument {
+    /// Metadata and the first HTML chunk.
+    pub result: DocOpenResult,
+    /// Chunks 1..n emitted on `doc://chunk` after the command returns.
+    pub remaining_chunks: Vec<String>,
+}
+
+fn document_title(rel_path: &Path, toc: &[TocEntry]) -> String {
+    toc.first()
+        .map(|entry| entry.title.as_str())
+        .filter(|title| !title.is_empty())
+        .map(str::to_owned)
+        .or_else(|| {
+            rel_path
+                .file_stem()
+                .and_then(|name| name.to_str())
+                .map(str::to_owned)
+        })
+        .filter(|title| !title.is_empty())
+        .unwrap_or_else(|| String::from("Untitled"))
 }
 
 #[cfg(test)]
@@ -446,5 +546,107 @@ mod tests {
             .expect("trash");
         assert!(!project_root.join("inbox/note.md").exists());
         assert!(project_root.join("inbox/note 2.md").exists());
+    }
+
+    #[test]
+    fn document_commands_read_source_and_return_the_first_chunk() {
+        let (temporary, state) = open_state();
+        let project_root = temporary.path().join("notes");
+        fs::create_dir(&project_root).expect("project directory");
+        fs::write(project_root.join("readme.md"), "# Hello\n\nParagraph.\n").expect("document");
+        let project = state
+            .projects_add("Notes".into(), project_root.clone())
+            .expect("add");
+
+        let source = state
+            .doc_source(project.id.clone(), PathBuf::from("readme.md"))
+            .expect("source");
+        assert_eq!(source.text, "# Hello\n\nParagraph.\n");
+        assert!(source.writable);
+
+        let opened = state
+            .doc_open(project.id.clone(), PathBuf::from("readme.md"))
+            .expect("open");
+        assert_eq!(opened.result.meta.title, "Hello");
+        assert_eq!(opened.result.meta.chunk_count, 1);
+        assert!(opened.remaining_chunks.is_empty());
+        let first = opened.result.first_chunk.expect("first chunk");
+        assert!(first.contains("<h1"));
+        assert!(first.contains("Hello"));
+        assert!(first.starts_with("<section class=\"chunk\">"));
+
+        let first_block = "a".repeat(40 * 1024);
+        let second_block = "b".repeat(30 * 1024);
+        let third_block = "c".repeat(1024);
+        fs::write(
+            project_root.join("wide.md"),
+            format!("{first_block}\n\n{second_block}\n\n{third_block}\n"),
+        )
+        .expect("wide document");
+        let wide = state
+            .doc_open(project.id.clone(), PathBuf::from("wide.md"))
+            .expect("wide open");
+        assert_eq!(wide.result.meta.chunk_count, 2);
+        assert_eq!(wide.remaining_chunks.len(), 1);
+        assert!(
+            wide.result
+                .first_chunk
+                .as_deref()
+                .is_some_and(|chunk| chunk.contains(&first_block))
+        );
+        assert!(wide.remaining_chunks[0].contains(&third_block));
+
+        fs::write(project_root.join("binary.md"), [0xff, 0xfe]).expect("binary");
+        let binary = state
+            .doc_open(project.id.clone(), PathBuf::from("binary.md"))
+            .expect("binary open");
+        assert!(binary.result.meta.source_only);
+        assert!(binary.result.first_chunk.is_none());
+        assert_eq!(binary.result.meta.chunk_count, 0);
+
+        assert!(
+            state
+                .doc_open(project.id.clone(), PathBuf::from(".."))
+                .is_err()
+        );
+        assert!(
+            state
+                .doc_source(project.id, PathBuf::from("../secret.md"))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn document_open_respects_allow_raw_html() {
+        let (temporary, state) = open_state();
+        let project_root = temporary.path().join("notes");
+        fs::create_dir(&project_root).expect("project directory");
+        fs::write(
+            project_root.join("raw.md"),
+            "<script>nope</script>\n<mark data-reader=\"yes\">raw</mark>\n",
+        )
+        .expect("document");
+        let project = state
+            .projects_add("Notes".into(), project_root)
+            .expect("add");
+
+        let sanitized = state
+            .doc_open(project.id.clone(), PathBuf::from("raw.md"))
+            .expect("sanitized");
+        let html = sanitized.result.first_chunk.expect("chunk");
+        assert!(!html.to_ascii_lowercase().contains("<script"));
+
+        let mut config = state.config_get();
+        config.viewer.allow_raw_html = true;
+        state.config_set(config).expect("allow raw html");
+        let raw = state
+            .doc_open(project.id, PathBuf::from("raw.md"))
+            .expect("raw");
+        assert!(
+            raw.result
+                .first_chunk
+                .as_deref()
+                .is_some_and(|chunk| chunk.contains("<mark data-reader=\"yes\">raw</mark>"))
+        );
     }
 }

@@ -10,8 +10,9 @@ mod commands;
 mod state;
 
 use commands::{
-    config_get, config_set, fs_copy, fs_create_file, fs_mkdir, fs_move, fs_rename, fs_trash,
-    projects_add, projects_list, projects_remove, projects_rename, tree_read_dir,
+    config_get, config_set, doc_open, doc_source, fs_copy, fs_create_file, fs_mkdir, fs_move,
+    fs_rename, fs_trash, projects_add, projects_list, projects_remove, projects_rename,
+    tree_read_dir,
 };
 use state::AppState;
 
@@ -35,6 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             fs_copy,
             fs_move,
             fs_trash,
+            doc_open,
+            doc_source,
         ])
         .run(tauri::generate_context!())
         .map_err(Into::into)

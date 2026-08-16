@@ -15,6 +15,7 @@ tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 ps-core = { version = "0.1.0", path = "../ps-core" }
+ps-render = { version = "0.1.0", path = "../ps-render" }
 tauri = { version = "2.11.5", features = [] }
 tauri-plugin-window-state = "2.4.1"
 
