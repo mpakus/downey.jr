@@ -6,19 +6,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
+use ts_rs::TS;
 use ulid::Ulid;
 
 use crate::store::{JsonStore, StoreWarning, VersionedDocument};
 use crate::{Error, Result};
 
 /// A registered folder containing Markdown documents.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, TS)]
 pub struct Project {
     /// Stable, lexicographically sortable ULID.
     pub id: String,
     /// User-visible project name.
     pub name: String,
     /// Absolute path to the project folder.
+    #[ts(type = "string")]
     pub path: PathBuf,
     /// RFC 3339 timestamp at which the project was registered.
     pub added_at: String,

@@ -1,12 +1,13 @@
 //! Application configuration and validation.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::store::VersionedDocument;
 use crate::{Error, Result};
 
 /// Complete application configuration stored in `config.json`.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Config {
     /// On-disk schema version.
@@ -62,7 +63,7 @@ impl VersionedDocument for Config {
 }
 
 /// Theme configuration.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Appearance {
     /// Light theme identifier.
@@ -87,7 +88,7 @@ impl Default for Appearance {
 }
 
 /// Document typography configuration.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Typography {
     /// Body font family.
@@ -115,7 +116,7 @@ impl Default for Typography {
 }
 
 /// Initial document-view mode.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ViewMode {
     /// Rendered Markdown only.
@@ -128,7 +129,7 @@ pub enum ViewMode {
 }
 
 /// Preview behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Viewer {
     /// Mode used when opening a document.
@@ -156,7 +157,7 @@ impl Default for Viewer {
 }
 
 /// Editor behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Editor {
     /// Idle time before autosave, in milliseconds.
@@ -199,7 +200,7 @@ impl Default for Editor {
 }
 
 /// Snapshot-history policy.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct History {
     /// Whether new snapshots are recorded.
@@ -233,7 +234,7 @@ impl Default for History {
 }
 
 /// File-tree and export behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Files {
     /// Whether hidden files are visible.
@@ -258,7 +259,7 @@ impl Default for Files {
 }
 
 /// Saved window geometry.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Window {
     /// Window width in logical pixels.
@@ -283,7 +284,7 @@ impl Default for Window {
 }
 
 /// Update-check behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Updates {
     /// Whether the optional update check runs at launch.

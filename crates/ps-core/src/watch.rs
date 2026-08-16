@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{Error, Result, fsops};
@@ -18,17 +19,19 @@ const DEBOUNCE: Duration = Duration::from_millis(150);
 const RAW_EVENT_QUEUE: usize = 1024;
 
 /// A coalesced project tree update.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum WatchUpdate {
     /// Relative paths affected during one debounce window.
     PathsChanged {
         /// Sorted, deduplicated project-relative paths.
+        #[ts(type = "Array<string>")]
         paths: Vec<PathBuf>,
     },
     /// Expanded directories to read again after events may have been lost.
     RescanExpanded {
         /// Only the currently expanded project-relative directories.
+        #[ts(type = "Array<string>")]
         paths: Vec<PathBuf>,
     },
 }

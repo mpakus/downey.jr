@@ -10,6 +10,7 @@ pub mod projects;
 pub mod search;
 pub mod store;
 pub mod tree;
+pub mod typescript;
 pub mod watch;
 
 pub use error::{Error, Result};

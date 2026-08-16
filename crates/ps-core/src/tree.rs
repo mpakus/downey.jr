@@ -5,12 +5,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{Error, Result, fsops};
 
 /// The filesystem kind represented by a tree node.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum TreeNodeKind {
     /// A directory that can be expanded lazily.
@@ -24,12 +25,13 @@ pub enum TreeNodeKind {
 }
 
 /// One immediate child of a project directory.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TreeNode {
     /// NFC-normalized display name.
     pub name: String,
     /// NFC-normalized path relative to the canonical project root.
+    #[ts(type = "string")]
     pub rel_path: PathBuf,
     /// Filesystem kind without following symbolic links.
     pub kind: TreeNodeKind,

@@ -9,3 +9,7 @@ Conventional Commits, а код, комментарии и сообщения к
 английском.
 
 Все проверки из Definition of Done в `AGENTS.md` обязательны.
+Типы, пересекающие IPC, генерируются из Rust: после изменения
+структуры запустите
+`UPDATE_TS_BINDINGS=1 cargo test -p ps-core --test typescript`
+и закоммитьте `ui/src/lib/generated/core.ts`.

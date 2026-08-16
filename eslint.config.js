@@ -11,6 +11,7 @@ export default tseslint.config(
       'target/**',
       'ui/coverage/**',
       'ui/dist/**',
+      'ui/src/lib/generated/**',
     ],
   },
   eslint.configs.recommended,
