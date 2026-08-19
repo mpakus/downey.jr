@@ -189,6 +189,10 @@ tree_w: number,
  */
 toc_w: number, 
 /**
+ * Editor column width in Split, in logical pixels.
+ */
+editor_w: number, 
+/**
  * Whether the Dock icon stays visible after the window is hidden.
  */
 show_in_dock: boolean, };

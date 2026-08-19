@@ -41,6 +41,7 @@
   } from './lib/ipc'
   import { applyMarkdownCommand } from './lib/markdown'
   import { pathsFromDataTransfer, recentProjects } from './lib/open'
+  import { clampPanelWidth } from './lib/panel-width'
   import {
     nextAfterClose,
     removeTab,
@@ -90,6 +91,8 @@
   let sidebarWidth = $state(220)
   let treeWidth = $state(260)
   let tocWidth = $state(224)
+  let editorWidth = $state(480)
+  let workspaceEl = $state<HTMLDivElement | undefined>()
   let treeHidden = $state(false)
   let viewMode = $state<ViewMode>('preview')
   let draftText = $state('')
@@ -129,7 +132,7 @@
   let bodyFont = $state('New York')
   let monoFont = $state('JetBrains Mono')
   let resizeStart = $state<{
-    kind: 'sidebar' | 'tree' | 'toc'
+    kind: 'sidebar' | 'tree' | 'toc' | 'editor'
     x: number
     width: number
   } | null>(null)
@@ -162,6 +165,7 @@
     sidebarWidth = config.window.sidebar_w
     treeWidth = config.window.tree_w
     tocWidth = config.window.toc_w
+    editorWidth = config.window.editor_w
     fontSize = config.typography.font_size
     lineHeight = config.typography.line_height
     measureCh = config.typography.measure_ch
@@ -231,18 +235,42 @@
   }
 
   async function persistPanelWidth(
-    kind: 'sidebar' | 'tree' | 'toc',
+    kind: 'sidebar' | 'tree' | 'toc' | 'editor',
     width: number,
   ) {
     const config = await configGet()
+    const pixels = Math.round(width)
     if (kind === 'sidebar') {
-      config.window.sidebar_w = width
+      config.window.sidebar_w = pixels
     } else if (kind === 'tree') {
-      config.window.tree_w = width
+      config.window.tree_w = pixels
+    } else if (kind === 'toc') {
+      config.window.toc_w = pixels
     } else {
-      config.window.toc_w = width
+      config.window.editor_w = pixels
     }
     await configSet(config)
+  }
+
+  function applyPanelDrag(
+    kind: 'sidebar' | 'tree' | 'toc' | 'editor',
+    requested: number,
+  ) {
+    const next = clampPanelWidth(
+      kind,
+      requested,
+      workspaceEl?.clientWidth || 1600,
+    )
+    if (kind === 'sidebar') {
+      sidebarWidth = next
+    } else if (kind === 'tree') {
+      treeWidth = next
+    } else if (kind === 'toc') {
+      tocWidth = next
+    } else {
+      editorWidth = next
+    }
+    return next
   }
 
   async function activateProject(
@@ -956,20 +984,10 @@
     if (!resizeStart) {
       return
     }
-    const next = Math.min(
-      resizeStart.kind === 'toc' ? 360 : 480,
-      Math.max(
-        resizeStart.kind === 'toc' ? 140 : 160,
-        resizeStart.width + event.clientX - resizeStart.x,
-      ),
+    applyPanelDrag(
+      resizeStart.kind,
+      resizeStart.width + event.clientX - resizeStart.x,
     )
-    if (resizeStart.kind === 'sidebar') {
-      sidebarWidth = next
-    } else if (resizeStart.kind === 'tree') {
-      treeWidth = next
-    } else {
-      tocWidth = next
-    }
   }}
   onpointerup={() => {
     if (!resizeStart) {
@@ -977,7 +995,13 @@
     }
     const kind = resizeStart.kind
     const width =
-      kind === 'sidebar' ? sidebarWidth : kind === 'tree' ? treeWidth : tocWidth
+      kind === 'sidebar'
+        ? sidebarWidth
+        : kind === 'tree'
+          ? treeWidth
+          : kind === 'toc'
+            ? tocWidth
+            : editorWidth
     resizeStart = null
     void persistPanelWidth(kind, width).catch((cause) => {
       error = errorMessage(cause)
@@ -1023,6 +1047,7 @@
   style:--sidebar-w="{sidebarWidth}px"
   style:--tree-w="{treeWidth}px"
   style:--toc-w="{tocWidth}px"
+  style:--editor-w="{editorWidth}px"
   style:--font-size="{fontSize}px"
   style:--line-height={lineHeight}
   style:--measure-ch={measureCh}
@@ -1220,7 +1245,11 @@
         }}
         onclose={closeTab}
       />
-      <div class="workspace" class:split={viewMode === 'split'}>
+      <div
+        class="workspace"
+        class:split={viewMode === 'split'}
+        bind:this={workspaceEl}
+      >
         {#if findOpen}
           <FindBar
             root={articleEl ?? null}
@@ -1234,6 +1263,22 @@
             writable={docSourceMeta?.writable ?? false}
             spellcheck={appConfig?.editor.spellcheck ?? true}
           />
+        {/if}
+        {#if viewMode === 'split'}
+          <div
+            class="resize"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize editor"
+            onpointerdown={(event) => {
+              event.preventDefault()
+              resizeStart = {
+                kind: 'editor',
+                x: event.clientX,
+                width: editorWidth,
+              }
+            }}
+          ></div>
         {/if}
         {#if viewMode !== 'editor'}
           <Preview
@@ -1579,15 +1624,15 @@
     flex-direction: row;
   }
 
-  .workspace.split :global(.editor),
-  .workspace.split :global(.pane) {
-    flex: 1;
+  .workspace.split :global(.editor) {
+    flex: none;
+    width: var(--editor-w);
     min-width: 0;
-    border-inline-end: 1px solid var(--border);
   }
 
   .workspace.split :global(.pane) {
-    border-inline-end: 0;
+    flex: 1;
+    min-width: 0;
   }
 
   .settings-loading {

@@ -280,16 +280,23 @@ impl Default for Files {
 #[serde(default)]
 pub struct Window {
     /// Window width in logical pixels.
+    #[serde(deserialize_with = "deserialize_px")]
     pub width: u32,
     /// Window height in logical pixels.
+    #[serde(deserialize_with = "deserialize_px")]
     pub height: u32,
     /// Project-sidebar width in logical pixels.
+    #[serde(deserialize_with = "deserialize_px")]
     pub sidebar_w: u32,
     /// File-tree width in logical pixels.
+    #[serde(deserialize_with = "deserialize_px")]
     pub tree_w: u32,
     /// Table-of-contents width in logical pixels.
-    #[serde(default = "default_toc_w")]
+    #[serde(default = "default_toc_w", deserialize_with = "deserialize_px")]
     pub toc_w: u32,
+    /// Editor column width in Split, in logical pixels.
+    #[serde(default = "default_editor_w", deserialize_with = "deserialize_px")]
+    pub editor_w: u32,
     /// Whether the Dock icon stays visible after the window is hidden.
     #[serde(default = "default_true")]
     pub show_in_dock: bool,
@@ -303,6 +310,7 @@ impl Default for Window {
             sidebar_w: 220,
             tree_w: 260,
             toc_w: 224,
+            editor_w: 480,
             show_in_dock: true,
         }
     }
@@ -326,6 +334,36 @@ impl Default for Updates {
 
 fn default_toc_w() -> u32 {
     224
+}
+
+fn default_editor_w() -> u32 {
+    480
+}
+
+fn deserialize_px<'de, D>(deserializer: D) -> std::result::Result<u32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Px {
+        U64(u64),
+        I64(i64),
+        F64(f64),
+    }
+
+    match Px::deserialize(deserializer)? {
+        Px::U64(value) => u32::try_from(value).map_err(serde::de::Error::custom),
+        Px::I64(value) => u32::try_from(value).map_err(serde::de::Error::custom),
+        Px::F64(value) => {
+            if !value.is_finite() || value < 0.0 {
+                return Err(serde::de::Error::custom(
+                    "pixel size must be a finite non-negative number",
+                ));
+            }
+            Ok(value.round().clamp(0.0, f64::from(u32::MAX)) as u32)
+        }
+    }
 }
 
 fn default_true() -> bool {

@@ -39,7 +39,35 @@ fn missing_toc_width_defaults_without_a_schema_bump() {
     }))
     .expect("window");
     assert_eq!(window.toc_w, 224);
+    assert_eq!(window.editor_w, 480);
     assert!(window.show_in_dock);
+}
+
+#[test]
+fn missing_editor_width_defaults_without_a_schema_bump() {
+    let window: Window = serde_json::from_value(serde_json::json!({
+        "width": 1180,
+        "height": 780,
+        "sidebar_w": 220,
+        "tree_w": 260,
+        "toc_w": 224
+    }))
+    .expect("window");
+    assert_eq!(window.editor_w, 480);
+}
+
+#[test]
+fn fractional_panel_widths_round_to_u32() {
+    let window: Window = serde_json::from_value(serde_json::json!({
+        "width": 1180,
+        "height": 780,
+        "sidebar_w": 220,
+        "tree_w": 260,
+        "toc_w": 224,
+        "editor_w": 128.1653125
+    }))
+    .expect("window");
+    assert_eq!(window.editor_w, 128);
 }
 
 #[test]
