@@ -9,6 +9,11 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      publish_tag:
+        description: Optional existing tag to attach the DMG to (e.g. v0.1.0). Leave empty to only upload workflow artifacts.
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -64,10 +69,14 @@ jobs:
 
       - name: Collect artifacts
         id: artifacts
+        env:
+          PUBLISH_TAG: ${{ inputs.publish_tag }}
         run: |
           set -euo pipefail
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             version="${GITHUB_REF_NAME#v}"
+          elif [[ -n "${PUBLISH_TAG:-}" ]]; then
+            version="${PUBLISH_TAG#v}"
           else
             version="$(node -p "require('./package.json').version")"
           fi
@@ -93,10 +102,10 @@ jobs:
             ${{ steps.artifacts.outputs.zip }}
 
       - name: Publish GitHub Release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || inputs.publish_tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.publish_tag }}
           VERSION: ${{ steps.artifacts.outputs.version }}
           DMG: ${{ steps.artifacts.outputs.dmg }}
           ZIP: ${{ steps.artifacts.outputs.zip }}
