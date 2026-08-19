@@ -52,7 +52,6 @@ jobs:
             ~/.cargo/git/db
             target
           key: cargo-universal-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-universal-${{ runner.os }}-
 
       - run: npm ci
 

@@ -28,7 +28,13 @@ const config = {
     preview_fg: '',
   },
   files: { confirm_delete: true, show_hidden: false },
-  window: { sidebar_w: 220, tree_w: 260, toc_w: 224, show_in_dock: true },
+  window: {
+    sidebar_w: 220,
+    tree_w: 260,
+    toc_w: 224,
+    editor_w: 480,
+    show_in_dock: true,
+  },
   editor: { spellcheck: true },
 } as Config
 
