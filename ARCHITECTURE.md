@@ -25,14 +25,14 @@
 
 ## Данные на диске
 
-| Путь | Назначение |
-| --- | --- |
-| `~/.1537paperstreet/config.json` | Настройки |
-| `~/.1537paperstreet/projects.json` | Реестр проектов |
-| `~/.1537paperstreet/ui-state.json` | Раскрытые узлы, ширины панелей |
-| `~/.1537paperstreet/themes/` | Пользовательские темы |
-| `~/.1537paperstreet/cache/mermaid/` | Кэш SVG диаграмм |
-| `~/.1537paperstreet/logs/app.log` | Логи без текста документов |
+| Путь                                | Назначение                     |
+| ----------------------------------- | ------------------------------ |
+| `~/.1537paperstreet/config.json`    | Настройки                      |
+| `~/.1537paperstreet/projects.json`  | Реестр проектов                |
+| `~/.1537paperstreet/ui-state.json`  | Раскрытые узлы, ширины панелей |
+| `~/.1537paperstreet/themes/`        | Пользовательские темы          |
+| `~/.1537paperstreet/cache/mermaid/` | Кэш SVG диаграмм               |
+| `~/.1537paperstreet/logs/app.log`   | Логи без текста документов     |
 
 Запись служебных JSON и пользовательских файлов — атомарная
 (temp → fsync → rename).

@@ -431,3 +431,41 @@ impl Drop for TemporaryFile {
         }
     }
 }
+
+#[cfg(test)]
+mod coverage {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn armed_temporary_file_is_removed_on_drop() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("scratch.tmp");
+        fs::write(&path, b"x").unwrap();
+        drop(TemporaryFile::new(path.clone()));
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn disarmed_temporary_file_is_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("scratch.tmp");
+        fs::write(&path, b"x").unwrap();
+        let mut tmp = TemporaryFile::new(path.clone());
+        tmp.disarm();
+        drop(tmp);
+        assert_eq!(fs::read(&path).unwrap(), b"x");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn atomic_replace_rejects_a_non_unicode_file_name() {
+        use std::os::unix::ffi::OsStrExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(std::ffi::OsStr::from_bytes(b"bad\xff.md"));
+        let permissions = fs::metadata(dir.path()).unwrap().permissions();
+        let error = atomic_replace(&path, b"x", permissions).expect_err("unicode");
+        assert!(error.to_string().contains("valid Unicode"));
+    }
+}

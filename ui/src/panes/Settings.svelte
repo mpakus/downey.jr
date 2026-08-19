@@ -235,8 +235,8 @@
     <section>
       <h3>Preview & Split</h3>
       <p class="hint">
-        These apply to rendered Markdown only — not the editor, tree, or
-        chrome. Leave them on the theme to follow the palette above.
+        These apply to rendered Markdown only — not the editor, tree, or chrome.
+        Leave them on the theme to follow the palette above.
       </p>
       <div class="grid">
         <label>

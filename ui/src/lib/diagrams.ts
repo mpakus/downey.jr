@@ -41,9 +41,8 @@ export function diagramSource(figure: Element): string {
     return ''
   }
   // WebKit keeps <template> children on `content`, so `textContent` is empty.
-  const fragment = (
-    template as { content?: { textContent?: string | null } }
-  ).content?.textContent
+  const fragment = (template as { content?: { textContent?: string | null } })
+    .content?.textContent
   return (fragment || template.textContent || '').replace(/\u00a0/g, ' ')
 }
 

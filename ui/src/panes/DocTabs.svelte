@@ -24,7 +24,8 @@
           role="tab"
           aria-selected={selected}
           title={tab.relPath}
-          onclick={() => onselect(tab.relPath)}>{tab.title || tabTitle(tab.relPath)}</button
+          onclick={() => onselect(tab.relPath)}
+          >{tab.title || tabTitle(tab.relPath)}</button
         >
         <button
           type="button"

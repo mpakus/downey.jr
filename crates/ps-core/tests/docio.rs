@@ -321,6 +321,63 @@ fn write_doc_returns_conflict_and_does_not_overwrite_external_bytes() {
 }
 
 #[test]
+fn write_doc_appends_a_trailing_newline_when_the_buffer_has_none() {
+    let (_temp, root) = project_file("note.md", b"seed\n");
+    let seed = docio::read_doc(&root, Path::new("note.md")).expect("seed");
+    let written = docio::write_doc(
+        &root,
+        Path::new("note.md"),
+        "hello",
+        &seed.hash,
+        RestoreTraits {
+            eol: LineEnding::Lf,
+            bom: false,
+            trailing_newline: true,
+        },
+    )
+    .expect("write");
+    assert!(!written.skipped);
+    assert_eq!(fs::read(root.join("note.md")).expect("disk"), b"hello\n");
+}
+
+#[test]
+fn write_doc_rejects_a_directory_and_a_missing_file() {
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    fs::create_dir(root.join("chapters")).expect("folder");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    let traits = RestoreTraits::from_source(&loaded.source);
+    let err = docio::write_doc(
+        &root,
+        Path::new("chapters"),
+        &loaded.source.text,
+        &loaded.hash,
+        traits,
+    )
+    .expect_err("directory");
+    assert!(err.to_string().contains("folders cannot be opened"));
+    assert!(
+        docio::write_doc(
+            &root,
+            Path::new("missing.md"),
+            &loaded.source.text,
+            &loaded.hash,
+            traits,
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn empty_file_defaults_to_lf_without_trailing_newline() {
+    let (_temp, root) = project_file("note.md", b"");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    assert_eq!(loaded.source.text, "");
+    assert_eq!(loaded.source.eol, LineEnding::Lf);
+    assert!(!loaded.source.trailing_newline);
+    assert!(!loaded.source.bom);
+}
+
+#[test]
 fn write_doc_rejects_paths_outside_the_project() {
     let (_temp, root) = project_file("note.md", b"hello\n");
     let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");

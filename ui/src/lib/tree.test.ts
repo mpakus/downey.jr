@@ -72,7 +72,9 @@ describe('tree helpers', () => {
       ),
     ).toEqual(['chapters', 'chapters/01.md', 'readme.md'])
     expect(
-      flattenTree(root, {}, new Set(['chapters'])).map((row) => row.node.relPath),
+      flattenTree(root, {}, new Set(['chapters'])).map(
+        (row) => row.node.relPath,
+      ),
     ).toEqual(['chapters', 'readme.md'])
   })
 

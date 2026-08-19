@@ -33,7 +33,12 @@ const config = {
 } as Config
 
 const themes: ThemeInfo[] = [
-  { id: 'paper-light', name: 'Paper Light', appearance: 'light', builtin: true },
+  {
+    id: 'paper-light',
+    name: 'Paper Light',
+    appearance: 'light',
+    builtin: true,
+  },
   { id: 'paper-dark', name: 'Paper Dark', appearance: 'dark', builtin: true },
 ]
 

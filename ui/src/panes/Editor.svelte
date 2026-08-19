@@ -19,8 +19,7 @@
     bind:value
     readonly={!writable}
     {spellcheck}
-    aria-label="Markdown source"
-  ></textarea>
+    aria-label="Markdown source"></textarea>
 </label>
 
 <style>
