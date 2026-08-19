@@ -32,6 +32,16 @@ const FILE_NEW_FOLDER: MenuCommand = MenuCommand {
     title: "New Folder",
     accelerator: Some("CmdOrCtrl+Shift+N"),
 };
+const FILE_OPEN_FILE: MenuCommand = MenuCommand {
+    id: "file-open-file",
+    title: "Open File…",
+    accelerator: Some("CmdOrCtrl+O"),
+};
+const FILE_OPEN_FOLDER: MenuCommand = MenuCommand {
+    id: "file-open-folder",
+    title: "Open Folder…",
+    accelerator: None,
+};
 const FILE_SAVE: MenuCommand = MenuCommand {
     id: "file-save",
     title: "Save",
@@ -39,8 +49,13 @@ const FILE_SAVE: MenuCommand = MenuCommand {
 };
 const FILE_EXPORT: MenuCommand = MenuCommand {
     id: "file-export",
-    title: "Export Project…",
+    title: "Export PDF…",
     accelerator: Some("CmdOrCtrl+Alt+E"),
+};
+const FILE_SETTINGS: MenuCommand = MenuCommand {
+    id: "file-settings",
+    title: "Settings…",
+    accelerator: None,
 };
 const FILE_TRASH: MenuCommand = MenuCommand {
     id: "file-trash",
@@ -186,6 +201,11 @@ const APP_SETTINGS: MenuCommand = MenuCommand {
     title: "Settings…",
     accelerator: Some("CmdOrCtrl+,"),
 };
+const APP_ABOUT: MenuCommand = MenuCommand {
+    id: "app-about",
+    title: "About 1537paperstreet",
+    accelerator: None,
+};
 
 #[cfg(test)]
 const HEADINGS: [MenuCommand; 6] = [
@@ -232,6 +252,7 @@ pub(crate) fn plan_commands() -> &'static [MenuCommand] {
         GO_REVEAL,
         GO_EXTERNAL_EDITOR,
         APP_SETTINGS,
+        FILE_SETTINGS,
     ]
 }
 
@@ -248,12 +269,13 @@ pub(crate) fn install(app: &App) -> tauri::Result<()> {
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let name = &app.package_info().name;
     let settings = item(app, APP_SETTINGS)?;
+    let about = item(app, APP_ABOUT)?;
     let app_menu = Submenu::with_items(
         app,
         name,
         true,
         &[
-            &PredefinedMenuItem::about(app, None, None)?,
+            &about,
             &PredefinedMenuItem::separator(app)?,
             &settings,
             &PredefinedMenuItem::separator(app)?,
@@ -269,23 +291,40 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
     let new_file = item(app, FILE_NEW)?;
     let new_folder = item(app, FILE_NEW_FOLDER)?;
+    let open_file = item(app, FILE_OPEN_FILE)?;
+    let open_folder = item(app, FILE_OPEN_FOLDER)?;
     let save = item(app, FILE_SAVE)?;
     let export = item(app, FILE_EXPORT)?;
+    let file_settings = item(app, FILE_SETTINGS)?;
     let trash = item(app, FILE_TRASH)?;
+    let file_about = MenuItem::with_id(
+        app,
+        "file-about",
+        APP_ABOUT.title,
+        true,
+        APP_ABOUT.accelerator,
+    )?;
     let file_menu = Submenu::with_items(
         app,
         "File",
         true,
         &[
+            &open_file,
+            &open_folder,
+            &PredefinedMenuItem::separator(app)?,
             &new_file,
             &new_folder,
             &PredefinedMenuItem::separator(app)?,
             &save,
             &export,
             &PredefinedMenuItem::separator(app)?,
+            &file_settings,
+            &PredefinedMenuItem::separator(app)?,
             &trash,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::close_window(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &file_about,
         ],
     )?;
 
@@ -427,9 +466,16 @@ fn on_menu_event(app: &AppHandle, id: &str) {
         });
     }
 
-    if plan_commands().iter().any(|command| command.id == id) {
+    if emits_menu_action(id) {
         let _ = app.emit(MENU_ACTION_EVENT, id);
     }
+}
+
+fn emits_menu_action(id: &str) -> bool {
+    matches!(
+        id,
+        "file-open-file" | "file-open-folder" | "app-about" | "file-about" | "file-settings"
+    ) || plan_commands().iter().any(|command| command.id == id)
 }
 
 fn next_font_size(current: u16, id: &str) -> Option<u16> {
@@ -450,7 +496,8 @@ mod tests {
         EDIT_LIST, EDIT_QUOTE, FILE_EXPORT, FILE_NEW, FILE_NEW_FOLDER, FILE_SAVE, FILE_TRASH,
         GO_EXTERNAL_EDITOR, GO_OPEN_FILE, GO_REVEAL, GO_SWITCH_PROJECT, HEADINGS, VIEW_FONT_LARGER,
         VIEW_FONT_RESET, VIEW_FONT_SMALLER, VIEW_TOGGLE_EDITOR, VIEW_TOGGLE_PROJECTS,
-        VIEW_TOGGLE_SPLIT, VIEW_TOGGLE_THEME, VIEW_TOGGLE_TREE, next_font_size, plan_commands,
+        VIEW_TOGGLE_SPLIT, VIEW_TOGGLE_THEME, VIEW_TOGGLE_TREE, emits_menu_action, next_font_size,
+        plan_commands,
     };
     use ps_core::config::Config;
 
@@ -527,6 +574,23 @@ mod tests {
         assert_eq!(next_font_size(32, "view-font-larger"), Some(32));
         assert_eq!(next_font_size(10, "view-font-smaller"), Some(10));
         assert_eq!(next_font_size(16, "file-save"), None);
+    }
+
+    #[test]
+    fn about_is_a_custom_menu_action() {
+        assert!(emits_menu_action("app-about"));
+        assert!(emits_menu_action("file-about"));
+        assert_eq!(super::APP_ABOUT.id, "app-about");
+        assert_eq!(super::APP_ABOUT.title, "About 1537paperstreet");
+    }
+
+    #[test]
+    fn file_menu_exports_pdf_and_opens_settings() {
+        assert_eq!(FILE_EXPORT.title, "Export PDF…");
+        assert!(emits_menu_action("file-settings"));
+        assert_eq!(super::FILE_SETTINGS.id, "file-settings");
+        assert_eq!(super::FILE_SETTINGS.title, "Settings…");
+        assert_eq!(APP_SETTINGS.title, "Settings…");
     }
 
     fn assert_supported_accelerator(spec: &str) {

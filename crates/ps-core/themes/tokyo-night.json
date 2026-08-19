@@ -1,0 +1,26 @@
+{
+  "id": "tokyo-night",
+  "name": "Tokyo Night",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "#1A1B26",
+    "bg-elev": "#24283B",
+    "sidebar": "#16161E",
+    "fg": "#C0CAF5",
+    "fg-muted": "#565F89",
+    "border": "#3B4261",
+    "accent": "#7AA2F7",
+    "selection": "#33467C",
+    "code-bg": "#24283B",
+    "hl-kw": "#BB9AF7",
+    "hl-str": "#9ECE6A",
+    "hl-num": "#FF9E64",
+    "hl-com": "#565F89",
+    "hl-fn": "#7AA2F7",
+    "hl-type": "#2AC3DE",
+    "ed-cursor": "#7AA2F7",
+    "ed-sel": "#33467C",
+    "ed-active-line": "#1F2335",
+    "ed-syntax": "#565F89"
+  }
+}

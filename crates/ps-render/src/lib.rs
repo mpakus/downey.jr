@@ -6,6 +6,7 @@ mod blocks;
 mod cache;
 mod chunks;
 mod highlight;
+mod images;
 mod links;
 mod mermaid;
 mod pipeline;

@@ -111,3 +111,22 @@ fn permanent_delete_removes_a_symlink_not_its_target() {
         b"Keep me"
     );
 }
+
+#[test]
+fn missing_items_are_rejected_before_any_delete() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(root.join("one.md"), b"One").expect("file");
+
+    assert!(
+        fsops::permanently_delete(
+            &root,
+            &[PathBuf::from("one.md"), PathBuf::from("missing.md")],
+            |_| Ok(()),
+        )
+        .is_err()
+    );
+    assert_eq!(fs::read(root.join("one.md")).expect("kept"), b"One");
+    assert!(fsops::trash(&root, &[PathBuf::from("missing.md")], |_| Ok(())).is_err());
+}

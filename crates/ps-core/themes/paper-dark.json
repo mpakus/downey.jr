@@ -1,0 +1,26 @@
+{
+  "id": "paper-dark",
+  "name": "Paper Dark",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "#1C1B19",
+    "bg-elev": "#252422",
+    "sidebar": "#161513",
+    "fg": "#F4F1EA",
+    "fg-muted": "#9C978F",
+    "border": "#3A3732",
+    "accent": "#E07A66",
+    "selection": "#3D2A26",
+    "code-bg": "#2A2825",
+    "hl-kw": "#D67AD0",
+    "hl-str": "#7DCE82",
+    "hl-num": "#E0A15A",
+    "hl-com": "#8C8880",
+    "hl-fn": "#6CB4E8",
+    "hl-type": "#5DCEC3",
+    "ed-cursor": "#E07A66",
+    "ed-sel": "#31415A",
+    "ed-active-line": "#242220",
+    "ed-syntax": "#8A857C"
+  }
+}

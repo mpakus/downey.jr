@@ -31,12 +31,26 @@ pub struct RenderedDocument {
 }
 
 /// Renders Markdown as HTML with the extensions supported by 1537paperstreet.
+///
+/// ```
+/// let html = ps_render::render("# Hello");
+/// assert!(html.contains("<h1"));
+/// assert!(html.contains("Hello"));
+/// ```
 #[must_use]
 pub fn render(markdown: &str) -> String {
     render_with_options(markdown, RenderOptions::default())
 }
 
 /// Renders Markdown with explicit rendering options.
+///
+/// ```
+/// use ps_render::{render_with_options, RenderOptions};
+///
+/// let dirty = "<script>alert(1)</script>";
+/// let html = render_with_options(dirty, RenderOptions { allow_raw_html: false });
+/// assert!(!html.contains("<script"));
+/// ```
 #[must_use]
 pub fn render_with_options(markdown: &str, options: RenderOptions) -> String {
     render_document_with_options(markdown, options).html
@@ -111,7 +125,11 @@ pub fn render_project_with_options(
         &raw_html_seen,
         &mut blocks,
     );
-    RenderedDocument { html, toc, blocks }
+    RenderedDocument {
+        html: crate::images::reserve_sizes(&html, project_root, project_scope),
+        toc,
+        blocks,
+    }
 }
 
 fn finish_render<'events>(

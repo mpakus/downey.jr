@@ -50,3 +50,18 @@ fn expanded_nodes_are_validated_through_the_project_boundary() {
             .is_err()
     );
 }
+
+#[test]
+fn start_rejects_a_file_and_try_recv_is_empty_before_events() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let file = temp.path().join("note.md");
+    fs::write(&file, b"text").expect("file");
+    assert!(ProjectWatcher::start(&file).is_err());
+
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(root.join("note.md"), b"text").expect("tree file");
+    let watcher = ProjectWatcher::start(&root).expect("project watcher");
+    assert!(watcher.try_recv().is_none());
+    assert!(watcher.set_expanded(&[PathBuf::from("note.md")]).is_err());
+}

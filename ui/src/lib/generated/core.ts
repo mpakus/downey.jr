@@ -63,7 +63,23 @@ mermaid_enabled: boolean,
 /**
  * Whether mathematical notation is enabled.
  */
-math_enabled: boolean, };
+math_enabled: boolean, 
+/**
+ * Preview/Split body font; empty uses `typography.body_font`.
+ */
+preview_font: string, 
+/**
+ * Preview/Split font size in CSS pixels; `0` uses `typography.font_size`.
+ */
+preview_font_size: number, 
+/**
+ * Preview/Split background; empty uses the theme `--bg` token.
+ */
+preview_bg: string, 
+/**
+ * Preview/Split text color; empty uses the theme `--fg` token.
+ */
+preview_fg: string, };
 
 export type Editor = { 
 /**
@@ -167,7 +183,15 @@ sidebar_w: number,
 /**
  * File-tree width in logical pixels.
  */
-tree_w: number, };
+tree_w: number, 
+/**
+ * Table-of-contents width in logical pixels.
+ */
+toc_w: number, 
+/**
+ * Whether the Dock icon stays visible after the window is hidden.
+ */
+show_in_dock: boolean, };
 
 export type Updates = { 
 /**
@@ -245,7 +269,11 @@ accent: string | null,
 /**
  * Last opened project-relative file path.
  */
-last_file: string | null, };
+last_file: string | null, 
+/**
+ * Cached path availability, omitted from persistent storage.
+ */
+available?: boolean | null, };
 
 export type ProjectsListQuery = { 
 /**
@@ -271,6 +299,16 @@ items: Array<Project>,
  */
 total: number, };
 
+export type OpenDropResult = { 
+/**
+ * Project that owns the dropped path, created if it was not registered.
+ */
+project: Project, 
+/**
+ * Project-relative path of a dropped Markdown file, when one was opened.
+ */
+openRelPath: string | null, };
+
 export type TreeNodeKind = "directory" | "file" | "symlink" | "other";
 
 export type TreeNode = { 
@@ -289,7 +327,23 @@ kind: TreeNodeKind, };
 
 export type ConflictStrategy = "replace" | "keepBoth" | "skip";
 
+export type UntitledKind = "file" | "folder";
+
 export type LineEnding = "lf" | "crlf";
+
+export type RestoreTraits = { 
+/**
+ * Line ending to write.
+ */
+eol: LineEnding, 
+/**
+ * Whether to prepend a UTF-8 BOM.
+ */
+bom: boolean, 
+/**
+ * Whether the file should end with a newline.
+ */
+trailingNewline: boolean, };
 
 export type DocumentEncoding = "utf8" | "binary";
 
@@ -309,7 +363,7 @@ id: string, };
 
 export type DocumentSource = { 
 /**
- * Decoded text. Empty when the file is not valid UTF-8.
+ * Decoded text with LF newlines. Empty when the file is not valid UTF-8.
  */
 text: string, 
 /**
@@ -320,6 +374,10 @@ eol: LineEnding,
  * Whether the file began with a UTF-8 BOM.
  */
 bom: boolean, 
+/**
+ * Whether the file ended with a newline.
+ */
+trailingNewline: boolean, 
 /**
  * Detected encoding.
  */
@@ -332,6 +390,20 @@ writable: boolean,
  * Why the document is read-only, when it is.
  */
 readonlyReason: string | null, };
+
+export type WrittenDocument = { 
+/**
+ * Lowercase hexadecimal BLAKE3 hash of the on-disk bytes.
+ */
+hash: string, 
+/**
+ * Size of the on-disk file in bytes.
+ */
+size: number, 
+/**
+ * True when the encoded buffer already matched the file, so nothing was written.
+ */
+skipped: boolean, };
 
 export type DocumentMeta = { 
 /**
@@ -426,3 +498,33 @@ paths: Array<string>, } } | { "rescanExpanded": {
  * Only the currently expanded project-relative directories.
  */
 paths: Array<string>, } };
+
+export type FsChangedEvent = { 
+/**
+ * Project that produced the update.
+ */
+projectId: string, 
+/**
+ * Debounced paths or an expanded-directory rescan.
+ */
+update: WatchUpdate, };
+
+export type ThemeAppearance = "light" | "dark";
+
+export type ThemeInfo = { 
+/**
+ * Stable identifier used as `data-theme`.
+ */
+id: string, 
+/**
+ * User-visible name.
+ */
+name: string, 
+/**
+ * Whether the theme is light or dark.
+ */
+appearance: ThemeAppearance, 
+/**
+ * Whether the theme ships with the application.
+ */
+builtin: boolean, };

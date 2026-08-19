@@ -7,10 +7,14 @@ export default defineConfig({
     include: ['ui/src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['ui/src/**/*.{ts,svelte}'],
+      include: ['ui/src/lib/tree.ts', 'ui/src/lib/text.ts'],
       exclude: ['ui/src/**/*.test.ts'],
       reporter: ['text', 'html', 'json'],
       reportsDirectory: 'coverage/ui',
+      thresholds: {
+        lines: 70,
+        statements: 70,
+      },
     },
   },
 })

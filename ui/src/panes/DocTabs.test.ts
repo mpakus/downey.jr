@@ -1,0 +1,35 @@
+import { render } from 'svelte/server'
+import { describe, expect, it } from 'vitest'
+
+import { tabTitle, type DocTab } from '../lib/tabs'
+import DocTabs from './DocTabs.svelte'
+
+function tab(relPath: string): DocTab {
+  return {
+    relPath,
+    title: tabTitle(relPath),
+    html: '',
+    docMeta: null,
+    docSourceMeta: null,
+    draftText: '',
+  }
+}
+
+describe('DocTabs', () => {
+  it('renders open document tabs', () => {
+    const { body } = render(DocTabs, {
+      props: {
+        tabs: [tab('notes/guide.md'), tab('todo.md')],
+        activeRelPath: 'todo.md',
+        onselect() {},
+        onclose() {},
+      },
+    })
+
+    expect(body).toContain('aria-label="Open documents"')
+    expect(body).toContain('guide.md')
+    expect(body).toContain('todo.md')
+    expect(body).toContain('aria-selected="true"')
+    expect(body).toContain('Close todo.md')
+  })
+})

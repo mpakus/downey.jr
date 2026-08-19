@@ -1,14 +1,25 @@
+use std::io;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 use ps_core::config::Config;
-use ps_core::docio::{self, DocOpenResult, DocumentMeta, DocumentSource, LoadedDocument, TocEntry};
-use ps_core::fsops::{self, ConflictStrategy, CopyOutcome, MoveOutcome};
+use ps_core::docio::{
+    self, DocOpenResult, DocumentMeta, DocumentSource, LoadedDocument, RestoreTraits, TocEntry,
+    WrittenDocument,
+};
+use ps_core::fsops::{self, ConflictStrategy, CopyOutcome, MoveOutcome, UntitledKind};
+use ps_core::log::FileLog;
+use ps_core::mermaid_cache::MermaidSvgCache;
 use ps_core::paths::AppPaths;
-use ps_core::projects::{Project, ProjectStore, ProjectsListQuery, ProjectsListResult};
+use ps_core::projects::{
+    self, OpenDropResult, Project, ProjectStore, ProjectsListQuery, ProjectsListResult,
+};
 use ps_core::search::ProjectSearch;
 use ps_core::store::JsonStore;
+use ps_core::themes::{ThemeCatalog, ThemeInfo};
 use ps_core::tree::{self, TreeNode};
+use ps_core::ui_state::UiState;
 use ps_core::{Error, Result};
 
 #[derive(Clone)]
@@ -18,6 +29,10 @@ pub(crate) struct AppState {
     config: Arc<Mutex<JsonStore<Config>>>,
     projects: Arc<Mutex<ProjectStore>>,
     search: Arc<Mutex<ProjectSearch>>,
+    ui_state: Arc<Mutex<JsonStore<UiState>>>,
+    themes: Arc<ThemeCatalog>,
+    log: Arc<FileLog>,
+    mermaid_cache: Arc<MermaidSvgCache>,
 }
 
 impl AppState {
@@ -25,17 +40,36 @@ impl AppState {
         paths.ensure()?;
         let config = JsonStore::open(paths.config_file())?;
         let projects = ProjectStore::open(paths.projects_file())?;
+        let ui_state = JsonStore::open(paths.ui_state_file())?;
         let mut search = ProjectSearch::new();
         for project in projects.list() {
             search.upsert(project.clone());
         }
+
+        let log = FileLog::open(paths.log_file())?;
+        let _ = log.info("application data opened");
+        let themes = ThemeCatalog::load(&paths.themes());
+        for warning in &themes.warnings {
+            let _ = log.warn(warning);
+        }
+
+        let mermaid_cache = MermaidSvgCache::open(paths.mermaid_cache())?;
 
         Ok(Self {
             paths,
             config: Arc::new(Mutex::new(config)),
             projects: Arc::new(Mutex::new(projects)),
             search: Arc::new(Mutex::new(search)),
+            ui_state: Arc::new(Mutex::new(ui_state)),
+            themes: Arc::new(themes),
+            log: Arc::new(log),
+            mermaid_cache: Arc::new(mermaid_cache),
         })
+    }
+
+    /// Appends a warning that does not include document text.
+    pub(crate) fn log_warn(&self, message: &str) {
+        let _ = self.log.warn(message);
     }
 
     pub(crate) fn config_get(&self) -> Config {
@@ -65,7 +99,7 @@ impl AppState {
             .map(str::trim)
             .filter(|value| !value.is_empty());
 
-        let (items, total) = if let Some(needle) = trimmed {
+        let (mut items, total) = if let Some(needle) = trimmed {
             self.search
                 .lock()
                 .unwrap_or_else(|error| error.into_inner())
@@ -83,10 +117,57 @@ impl AppState {
             )
         };
 
+        for item in &mut items {
+            item.available = Some(item.path.is_dir());
+        }
+
         ProjectsListResult {
             items,
             total: u32::try_from(total).unwrap_or(u32::MAX),
         }
+    }
+
+    pub(crate) fn themes_list(&self) -> Vec<ThemeInfo> {
+        self.themes.infos()
+    }
+
+    pub(crate) fn themes_css(&self) -> String {
+        self.themes.css()
+    }
+
+    pub(crate) fn mermaid_cache_get(
+        &self,
+        source_hash: String,
+        theme_id: String,
+    ) -> Result<Option<String>> {
+        self.mermaid_cache.get(&source_hash, &theme_id)
+    }
+
+    pub(crate) fn mermaid_cache_put(
+        &self,
+        source_hash: String,
+        theme_id: String,
+        svg: String,
+    ) -> Result<()> {
+        self.mermaid_cache.put(&source_hash, &theme_id, &svg)
+    }
+
+    pub(crate) fn save_user_file(&self, path: PathBuf, bytes: Vec<u8>) -> Result<()> {
+        save_user_picked_file(&path, &bytes)
+    }
+
+    pub(crate) fn projects_relocate(&self, id: String, path: PathBuf) -> Result<Project> {
+        let mut projects = self
+            .projects
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let project = projects.relocate(&id, path)?;
+        self.search
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .upsert(project.clone());
+        projects.flush()?;
+        Ok(project)
     }
 
     pub(crate) fn projects_add(&self, name: String, path: PathBuf) -> Result<Project> {
@@ -101,6 +182,23 @@ impl AppState {
             .upsert(project.clone());
         projects.flush()?;
         Ok(project)
+    }
+
+    pub(crate) fn open_dropped_paths(&self, paths: Vec<PathBuf>) -> Result<OpenDropResult> {
+        let mut projects = self
+            .projects
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let result = projects::open_dropped_paths(&mut projects, &paths)?;
+        let mut search = self
+            .search
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        for project in projects.list() {
+            search.upsert(project.clone());
+        }
+        projects.flush()?;
+        Ok(result)
     }
 
     pub(crate) fn projects_rename(&self, id: String, name: String) -> Result<()> {
@@ -133,6 +231,15 @@ impl AppState {
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .remove(&id);
+        let mut ui_state = self
+            .ui_state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        ui_state.update(|state| state.remove_project(&id));
+        ui_state.flush()?;
+        let _ = self
+            .log
+            .info(&format!("removed project {id} from the list"));
         projects.flush().map(|_| ())
     }
 
@@ -146,6 +253,29 @@ impl AppState {
         tree::read_dir(&root, &rel_path, show_hidden)
     }
 
+    pub(crate) fn tree_expanded_get(&self, project_id: String) -> Vec<String> {
+        self.ui_state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .value()
+            .expanded_for(&project_id)
+    }
+
+    pub(crate) fn tree_expanded_set(
+        &self,
+        project_id: String,
+        rel_paths: Vec<PathBuf>,
+    ) -> Result<()> {
+        let mut store = self
+            .ui_state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let mut state = store.value().clone();
+        state.set_expanded(project_id, rel_paths)?;
+        store.replace(state);
+        store.flush().map(|_| ())
+    }
+
     pub(crate) fn fs_mkdir(&self, project_id: String, rel_path: PathBuf) -> Result<TreeNode> {
         let root = self.project_root(&project_id)?;
         let absolute = fsops::mkdir(&root, &rel_path)?;
@@ -156,6 +286,27 @@ impl AppState {
         let root = self.project_root(&project_id)?;
         let absolute = fsops::create_file(&root, &rel_path)?;
         tree::node_at(&root, &absolute)
+    }
+
+    pub(crate) fn fs_create_untitled(
+        &self,
+        project_id: String,
+        parent_rel: PathBuf,
+        kind: UntitledKind,
+    ) -> Result<TreeNode> {
+        let root = self.project_root(&project_id)?;
+        let absolute = fsops::create_untitled(&root, &parent_rel, kind)?;
+        tree::node_at(&root, &absolute)
+    }
+
+    pub(crate) fn reveal_in_finder(&self, project_id: String, rel_path: PathBuf) -> Result<()> {
+        let path = self.absolute_in_project(&project_id, &rel_path)?;
+        run_open(&["-R", "--"], &path, "reveal the item in Finder")
+    }
+
+    pub(crate) fn open_external(&self, project_id: String, rel_path: PathBuf) -> Result<()> {
+        let path = self.absolute_in_project(&project_id, &rel_path)?;
+        run_open(&["--"], &path, "open the file in an external editor")
     }
 
     pub(crate) fn fs_rename(
@@ -200,6 +351,32 @@ impl AppState {
         Ok(nodes)
     }
 
+    pub(crate) fn fs_import(
+        &self,
+        project_id: String,
+        sources: Vec<PathBuf>,
+        to_dir: PathBuf,
+        conflict: ConflictStrategy,
+    ) -> Result<Vec<TreeNode>> {
+        let root = self.project_root(&project_id)?;
+        fsops::import_into(
+            &root,
+            &to_dir,
+            &sources,
+            conflict,
+            pending_history_snapshot,
+            |_| {},
+        )?
+        .into_iter()
+        .map(|outcome| {
+            let absolute = match outcome {
+                CopyOutcome::Copied { path } | CopyOutcome::Skipped { path } => path,
+            };
+            tree::node_at(&root, &absolute)
+        })
+        .collect()
+    }
+
     pub(crate) fn fs_move(
         &self,
         project_id: String,
@@ -231,12 +408,100 @@ impl AppState {
         fsops::trash(&root, &rel_paths, pending_history_snapshot)
     }
 
+    pub(crate) fn files_search(
+        &self,
+        project_id: String,
+        query: String,
+        limit: u32,
+    ) -> Result<Vec<TreeNode>> {
+        let root = self.project_root(&project_id)?;
+        let show_hidden = self.config_get().files.show_hidden;
+        tree::search_markdown(
+            &root,
+            &query,
+            show_hidden,
+            usize::try_from(limit).unwrap_or(usize::MAX),
+        )
+    }
+
+    pub(crate) fn copy_conflicts(
+        &self,
+        project_id: String,
+        from: Vec<PathBuf>,
+        to_dir: PathBuf,
+    ) -> Result<Vec<String>> {
+        let root = self.project_root(&project_id)?;
+        let mut names = Vec::new();
+        for rel_path in from {
+            let file_name = rel_path.file_name().ok_or_else(|| Error::UnsafePath {
+                path: rel_path.clone(),
+                reason: "the copy source does not have a file name",
+            })?;
+            let destination = to_dir.join(file_name);
+            let absolute = fsops::resolve(&root, &destination)?;
+            if std::fs::symlink_metadata(&absolute).is_ok() {
+                names.push(file_name.to_string_lossy().into_owned());
+            }
+        }
+        Ok(names)
+    }
+
+    pub(crate) fn resolve_asset(&self, project_id: &str, rel_path: &Path) -> Result<PathBuf> {
+        let path = self.absolute_in_project(project_id, rel_path)?;
+        let metadata = std::fs::symlink_metadata(&path).map_err(|source| Error::Io {
+            action: "open the asset",
+            path: path.clone(),
+            source,
+        })?;
+        if metadata.is_dir() {
+            return Err(Error::UnsafePath {
+                path: path.clone(),
+                reason: "folders cannot be served as assets",
+            });
+        }
+        Ok(path)
+    }
+
+    pub(crate) fn open_url(url: &str) -> Result<()> {
+        if !is_http_url(url) {
+            return Err(Error::UnsupportedUrl);
+        }
+        let status = Command::new("/usr/bin/open")
+            .args(["--", url])
+            .status()
+            .map_err(|source| Error::Io {
+                action: "open the link in a browser",
+                path: PathBuf::from(url),
+                source,
+            })?;
+        if status.success() {
+            return Ok(());
+        }
+        Err(Error::Io {
+            action: "open the link in a browser",
+            path: PathBuf::from(url),
+            source: io::Error::other("the macOS open command failed"),
+        })
+    }
+
     pub(crate) fn doc_source(
         &self,
         project_id: String,
         rel_path: PathBuf,
     ) -> Result<DocumentSource> {
         Ok(self.load_document(&project_id, &rel_path)?.source)
+    }
+
+    pub(crate) fn doc_save(
+        &self,
+        project_id: String,
+        rel_path: PathBuf,
+        text: String,
+        base_hash: String,
+        traits: RestoreTraits,
+    ) -> Result<WrittenDocument> {
+        let root = self.project_root(&project_id)?;
+        docio::write_doc(&root, &rel_path, &text, &base_hash, traits)
     }
 
     pub(crate) fn doc_open(
@@ -307,12 +572,17 @@ impl AppState {
         docio::read_doc(&root, rel_path)
     }
 
-    fn project_root(&self, id: &str) -> Result<PathBuf> {
+    pub(crate) fn project_root(&self, id: &str) -> Result<PathBuf> {
         let projects = self
             .projects
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         Ok(projects.get(id)?.path.clone())
+    }
+
+    fn absolute_in_project(&self, project_id: &str, rel_path: &Path) -> Result<PathBuf> {
+        let root = self.project_root(project_id)?;
+        fsops::resolve(&root, rel_path)
     }
 
     #[cfg(test)]
@@ -324,6 +594,107 @@ impl AppState {
 /// History snapshots for destructive filesystem operations land in T-200.
 fn pending_history_snapshot(_: &Path) -> Result<()> {
     Ok(())
+}
+
+fn is_http_url(url: &str) -> bool {
+    if url.is_empty()
+        || url
+            .bytes()
+            .any(|byte| byte.is_ascii_whitespace() || byte == b'\0')
+    {
+        return false;
+    }
+    let rest = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"));
+    let Some(rest) = rest else {
+        return false;
+    };
+    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
+    !host.is_empty()
+        && !host.contains('@')
+        && host.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '.' | '-' | ':')
+        })
+}
+
+fn run_open(args: &[&str], path: &Path, action: &'static str) -> Result<()> {
+    let status = Command::new("/usr/bin/open")
+        .args(args)
+        .arg(path)
+        .status()
+        .map_err(|source| Error::Io {
+            action,
+            path: path.to_path_buf(),
+            source,
+        })?;
+    if status.success() {
+        return Ok(());
+    }
+    Err(Error::Io {
+        action,
+        path: path.to_path_buf(),
+        source: io::Error::other("the macOS open command failed"),
+    })
+}
+
+/// Writes bytes chosen through a native Save dialog. This is not a project path.
+fn save_user_picked_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    if !path.is_absolute() || path.as_os_str().as_encoded_bytes().contains(&0) {
+        return Err(Error::UnsafePath {
+            path: path.to_path_buf(),
+            reason: "the save location must be an absolute path",
+        });
+    }
+    let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
+    if !matches!(extension, "png" | "svg" | "pdf") {
+        return Err(Error::UnsafePath {
+            path: path.to_path_buf(),
+            reason: "the file can be saved as PNG, SVG, or PDF",
+        });
+    }
+    let Some(parent) = path.parent() else {
+        return Err(Error::UnsafePath {
+            path: path.to_path_buf(),
+            reason: "the save location has no parent folder",
+        });
+    };
+    if !parent.is_dir() {
+        return Err(Error::Io {
+            action: "open the save folder",
+            path: parent.to_path_buf(),
+            source: io::Error::from(io::ErrorKind::NotFound),
+        });
+    }
+    let temporary = parent.join(format!(
+        ".{}.part",
+        path.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("diagram")
+    ));
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&temporary)
+        .map_err(|source| Error::Io {
+            action: "create the saved file",
+            path: temporary.clone(),
+            source,
+        })?;
+    std::io::Write::write_all(&mut file, bytes)
+        .and_then(|()| file.sync_all())
+        .map_err(|source| Error::Io {
+            action: "write the saved file",
+            path: temporary.clone(),
+            source,
+        })?;
+    drop(file);
+    std::fs::rename(&temporary, path).map_err(|source| Error::Io {
+        action: "replace the saved file",
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 /// Rendered document ready for the `doc_open` command to return and stream.
@@ -352,9 +723,10 @@ fn document_title(rel_path: &Path, toc: &[TocEntry]) -> String {
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     use ps_core::config::Config;
+    use ps_core::docio::RestoreTraits;
     use ps_core::fsops::ConflictStrategy;
     use ps_core::paths::AppPaths;
     use ps_core::projects::ProjectsListQuery;
@@ -382,6 +754,74 @@ mod tests {
                 })
                 .total,
             0
+        );
+        assert!(state.paths().mermaid_cache().is_dir());
+    }
+
+    #[test]
+    fn records_warnings_in_the_application_log() {
+        let (_temporary, state) = open_state();
+        state.log_warn("sidebar vibrancy could not be applied");
+        let text = fs::read_to_string(state.paths().log_file()).expect("log");
+        assert!(text.contains("warn sidebar vibrancy could not be applied"));
+        assert!(!text.contains("# Heading"));
+    }
+
+    #[test]
+    fn mermaid_cache_round_trips_svg_per_theme() {
+        let (_temporary, state) = open_state();
+        let hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>";
+        assert!(
+            state
+                .mermaid_cache_get(hash.into(), "paper-light".into())
+                .expect("miss")
+                .is_none()
+        );
+        state
+            .mermaid_cache_put(hash.into(), "paper-light".into(), svg.into())
+            .expect("put");
+        assert_eq!(
+            state
+                .mermaid_cache_get(hash.into(), "paper-light".into())
+                .expect("hit")
+                .as_deref(),
+            Some(svg)
+        );
+        assert!(
+            state
+                .save_user_file(PathBuf::from("diagram.png"), b"nope".to_vec())
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn save_user_file_writes_png_and_svg_atomically() {
+        let (temporary, state) = open_state();
+        let png = temporary.path().join("diagram.png");
+        let svg = temporary.path().join("diagram.svg");
+        state
+            .save_user_file(png.clone(), b"\x89PNG".to_vec())
+            .expect("png");
+        state
+            .save_user_file(svg.clone(), b"<svg></svg>".to_vec())
+            .expect("svg");
+        let pdf = temporary.path().join("note.pdf");
+        state
+            .save_user_file(pdf.clone(), b"%PDF-1.4".to_vec())
+            .expect("pdf");
+        assert_eq!(fs::read(&png).expect("read png"), b"\x89PNG");
+        assert_eq!(fs::read(&svg).expect("read svg"), b"<svg></svg>");
+        assert_eq!(fs::read(&pdf).expect("read pdf"), b"%PDF-1.4");
+        assert!(
+            state
+                .save_user_file(temporary.path().join("diagram.txt"), b"nope".to_vec())
+                .is_err()
+        );
+        assert!(
+            state
+                .save_user_file(temporary.path().join("missing/out.png"), b"x".to_vec())
+                .is_err()
         );
     }
 
@@ -441,6 +881,188 @@ mod tests {
             0
         );
         assert_eq!(fs::read(&document).expect("preserved"), b"keep");
+    }
+
+    #[test]
+    fn dropped_paths_register_a_project_and_open_markdown() {
+        let (temporary, state) = open_state();
+        let notes = temporary.path().join("notes");
+        fs::create_dir(&notes).expect("project directory");
+        let document = notes.join("readme.md");
+        fs::write(&document, b"# Hello\n").expect("document");
+
+        let folder = state
+            .open_dropped_paths(vec![notes.clone()])
+            .expect("open folder");
+        assert_eq!(folder.project.name, "notes");
+        assert!(folder.open_rel_path.is_none());
+
+        let file = state.open_dropped_paths(vec![document]).expect("open file");
+        assert_eq!(file.project.id, folder.project.id);
+        assert_eq!(file.open_rel_path, Some(PathBuf::from("readme.md")));
+        assert_eq!(
+            state
+                .projects_list(ProjectsListQuery {
+                    limit: 10,
+                    ..ProjectsListQuery::default()
+                })
+                .total,
+            1
+        );
+
+        let image = notes.join("cover.png");
+        fs::write(&image, b"png").expect("image");
+        assert!(state.open_dropped_paths(vec![image]).is_err());
+    }
+
+    #[test]
+    fn tree_expansion_is_persisted_per_project_and_cleared_on_remove() {
+        let (temporary, state) = open_state();
+        let notes = temporary.path().join("notes");
+        fs::create_dir(&notes).expect("project directory");
+        let project = state.projects_add("Notes".into(), notes).expect("add");
+
+        state
+            .tree_expanded_set(project.id.clone(), vec![PathBuf::from("chapters")])
+            .expect("save expanded");
+        assert_eq!(
+            state.tree_expanded_get(project.id.clone()),
+            vec!["chapters".to_owned()]
+        );
+        assert!(
+            state
+                .tree_expanded_set(project.id.clone(), vec![PathBuf::from("..")])
+                .is_err()
+        );
+
+        let reopened = AppState::open(AppPaths::from_root(temporary.path())).expect("reopen");
+        assert_eq!(
+            reopened.tree_expanded_get(project.id.clone()),
+            vec!["chapters".to_owned()]
+        );
+        reopened
+            .projects_remove(project.id.clone())
+            .expect("remove");
+        assert!(reopened.tree_expanded_get(project.id).is_empty());
+    }
+
+    #[test]
+    fn untitled_items_and_finder_paths_stay_inside_the_project() {
+        let (temporary, state) = open_state();
+        let notes = temporary.path().join("notes");
+        fs::create_dir(&notes).expect("project directory");
+        let project = state.projects_add("Notes".into(), notes).expect("add");
+
+        let file = state
+            .fs_create_untitled(
+                project.id.clone(),
+                PathBuf::new(),
+                ps_core::fsops::UntitledKind::File,
+            )
+            .expect("untitled file");
+        assert_eq!(file.name, "untitled.md");
+        let folder = state
+            .fs_create_untitled(
+                project.id.clone(),
+                PathBuf::new(),
+                ps_core::fsops::UntitledKind::Folder,
+            )
+            .expect("untitled folder");
+        assert_eq!(folder.name, "untitled");
+
+        assert!(
+            state
+                .fs_create_untitled(
+                    project.id.clone(),
+                    PathBuf::from(".."),
+                    ps_core::fsops::UntitledKind::File,
+                )
+                .is_err()
+        );
+        assert!(
+            state
+                .reveal_in_finder(project.id.clone(), PathBuf::from(".."))
+                .is_err()
+        );
+        assert!(
+            state
+                .open_external(project.id, PathBuf::from("../secret.md"))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn files_search_and_assets_stay_inside_the_project() {
+        let (temporary, state) = open_state();
+        let notes = temporary.path().join("notes");
+        fs::create_dir_all(notes.join("chapters")).expect("project directory");
+        fs::write(notes.join("readme.md"), b"# Hi").expect("readme");
+        fs::write(notes.join("chapters/intro.md"), b"# Intro").expect("intro");
+        fs::write(notes.join("cover.png"), b"png").expect("image");
+        let project = state
+            .projects_add("Notes".into(), notes.clone())
+            .expect("add");
+
+        let found = state
+            .files_search(project.id.clone(), "intro".into(), 20)
+            .expect("search");
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].name, "intro.md");
+
+        let asset = state
+            .resolve_asset(&project.id, Path::new("cover.png"))
+            .expect("asset");
+        assert_eq!(
+            asset,
+            notes.join("cover.png").canonicalize().expect("canonical")
+        );
+        assert!(
+            state
+                .resolve_asset(&project.id, Path::new("../cover.png"))
+                .is_err()
+        );
+        assert!(
+            state
+                .resolve_asset(&project.id, Path::new("chapters"))
+                .is_err()
+        );
+
+        let outside = temporary.path().join("outside.png");
+        fs::write(&outside, b"png").expect("outside image");
+        let imported = state
+            .fs_import(
+                project.id.clone(),
+                vec![outside.clone()],
+                PathBuf::from("chapters"),
+                ps_core::fsops::ConflictStrategy::KeepBoth,
+            )
+            .expect("import");
+        assert_eq!(imported.len(), 1);
+        assert_eq!(imported[0].name, "outside.png");
+        assert!(notes.join("chapters/outside.png").exists());
+        assert!(
+            state
+                .fs_import(
+                    project.id.clone(),
+                    vec![temporary.path().join("../nope.txt")],
+                    PathBuf::from(".."),
+                    ps_core::fsops::ConflictStrategy::KeepBoth,
+                )
+                .is_err()
+        );
+
+        let conflicts = state
+            .copy_conflicts(project.id, vec![PathBuf::from("readme.md")], PathBuf::new())
+            .expect("conflicts");
+        assert_eq!(conflicts, ["readme.md"]);
+    }
+
+    #[test]
+    fn open_url_rejects_non_http_schemes() {
+        assert!(AppState::open_url("javascript:alert(1)").is_err());
+        assert!(AppState::open_url("file:///etc/passwd").is_err());
+        assert!(AppState::open_url("https://example.com\n").is_err());
+        assert!(AppState::open_url("http://user@host/").is_err());
     }
 
     #[test]
@@ -563,6 +1185,7 @@ mod tests {
             .expect("source");
         assert_eq!(source.text, "# Hello\n\nParagraph.\n");
         assert!(source.writable);
+        assert!(source.trailing_newline);
 
         let opened = state
             .doc_open(project.id.clone(), PathBuf::from("readme.md"))
@@ -574,6 +1197,17 @@ mod tests {
         assert!(first.contains("<h1"));
         assert!(first.contains("Hello"));
         assert!(first.starts_with("<section class=\"chunk\">"));
+
+        let saved = state
+            .doc_save(
+                project.id.clone(),
+                PathBuf::from("readme.md"),
+                source.text.clone(),
+                opened.result.meta.hash.clone(),
+                RestoreTraits::from_source(&source),
+            )
+            .expect("save");
+        assert!(saved.skipped);
 
         let first_block = "a".repeat(40 * 1024);
         let second_block = "b".repeat(30 * 1024);

@@ -1,0 +1,141 @@
+import { describe, expect, it } from 'vitest'
+
+import type { TreeNode } from './generated/core'
+import {
+  ancestorDirs,
+  fileIconKind,
+  flattenTree,
+  isMarkdownPath,
+  joinRel,
+  parentDir,
+  sortDirsByDepth,
+  targetDir,
+  visibleWindow,
+  parseAssetHref,
+  isHttpHref,
+  dirsToReload,
+  rangeRelPaths,
+  dropDirAtPoint,
+} from './tree'
+
+function node(relPath: string, kind: TreeNode['kind']): TreeNode {
+  const name = relPath.split('/').at(-1) ?? relPath
+  return { name, relPath, kind }
+}
+
+describe('tree helpers', () => {
+  it('recognizes Markdown file names', () => {
+    expect(isMarkdownPath('readme.md')).toBe(true)
+    expect(isMarkdownPath('Note.MARKDOWN')).toBe(true)
+    expect(isMarkdownPath('cover.png')).toBe(false)
+  })
+
+  it('picks distinct icons for folders, Markdown, and other files', () => {
+    expect(fileIconKind(node('notes', 'directory'))).toBe('directory')
+    expect(fileIconKind(node('readme.md', 'file'))).toBe('markdown')
+    expect(fileIconKind(node('photo.png', 'file'))).toBe('file')
+    expect(fileIconKind(node('link', 'symlink'))).toBe('file')
+  })
+
+  it('lists ancestor directories for a nested file', () => {
+    expect(ancestorDirs('01.md')).toEqual([])
+    expect(ancestorDirs('chapters/01.md')).toEqual(['chapters'])
+    expect(ancestorDirs('a/b/c.md')).toEqual(['a', 'a/b'])
+  })
+
+  it('sorts directories from the root downward', () => {
+    expect(sortDirsByDepth(['a/b', 'a', 'z'])).toEqual(['a', 'z', 'a/b'])
+  })
+
+  it('resolves parent and creation directories', () => {
+    expect(parentDir('chapters/01.md')).toBe('chapters')
+    expect(parentDir('readme.md')).toBe('')
+    expect(joinRel('chapters', 'untitled.md')).toBe('chapters/untitled.md')
+    expect(joinRel('', 'untitled.md')).toBe('untitled.md')
+    expect(targetDir(null)).toBe('')
+    expect(targetDir(node('chapters', 'directory'))).toBe('chapters')
+    expect(targetDir(node('chapters/01.md', 'file'))).toBe('chapters')
+  })
+
+  it('flattens only expanded directories', () => {
+    const root = [node('chapters', 'directory'), node('readme.md', 'file')]
+    const children = {
+      chapters: [node('chapters/01.md', 'file')],
+    }
+
+    expect(
+      flattenTree(root, children, new Set()).map((row) => row.node.relPath),
+    ).toEqual(['chapters', 'readme.md'])
+    expect(
+      flattenTree(root, children, new Set(['chapters'])).map(
+        (row) => row.node.relPath,
+      ),
+    ).toEqual(['chapters', 'chapters/01.md', 'readme.md'])
+    expect(
+      flattenTree(root, {}, new Set(['chapters'])).map((row) => row.node.relPath),
+    ).toEqual(['chapters', 'readme.md'])
+  })
+
+  it('windows long lists with a buffer of 20', () => {
+    expect(visibleWindow(500, 0, 280, 28, 20)).toEqual({ start: 0, end: 30 })
+    expect(visibleWindow(500, 2800, 280, 28, 20)).toEqual({
+      start: 80,
+      end: 130,
+    })
+    expect(visibleWindow(0, 0, 280, 28, 20)).toEqual({ start: 0, end: 0 })
+    expect(visibleWindow(10, 0, 0, 28, 20)).toEqual({ start: 0, end: 10 })
+  })
+
+  it('parses renderer asset URLs and http links', () => {
+    expect(
+      parseAssetHref('asset://localhost/proj/notes/guide.md#intro'),
+    ).toEqual({
+      projectId: 'proj',
+      relPath: 'notes/guide.md',
+      hash: 'intro',
+    })
+    expect(parseAssetHref('asset://localhost/proj/a%20b.png')).toEqual({
+      projectId: 'proj',
+      relPath: 'a b.png',
+      hash: '',
+    })
+    expect(parseAssetHref('../escape.md')).toBeNull()
+    expect(parseAssetHref('asset://localhost/proj/a%2F..%2Fb.md')).toBeNull()
+    expect(parseAssetHref('asset://localhost/proj/%E0%A4%A')).toBeNull()
+    expect(isHttpHref('https://example.com')).toBe(true)
+    expect(isHttpHref('javascript:alert(1)')).toBe(false)
+  })
+
+  it('collects parent directories for watch reloads', () => {
+    expect(dirsToReload(['chapters/01.md', 'readme.md'])).toEqual([
+      '',
+      'chapters',
+    ])
+  })
+
+  it('selects an inclusive range of visible rows', () => {
+    const rows = flattenTree(
+      [
+        node('a.md', 'file'),
+        node('b.md', 'file'),
+        node('c.md', 'file'),
+        node('d.md', 'file'),
+      ],
+      {},
+      new Set(),
+    )
+    expect(rangeRelPaths(rows, 'a.md', 'c.md')).toEqual([
+      'a.md',
+      'b.md',
+      'c.md',
+    ])
+    expect(rangeRelPaths(rows, 'c.md', 'b.md')).toEqual(['b.md', 'c.md'])
+    expect(rangeRelPaths(rows, null, 'b.md')).toEqual(['b.md'])
+    expect(rangeRelPaths(rows, 'missing.md', 'b.md')).toEqual(['b.md'])
+    expect(rangeRelPaths(rows, 'a.md', 'missing.md')).toEqual(['missing.md'])
+  })
+
+  it('returns null for drop targeting when there is no document', () => {
+    expect(dropDirAtPoint(0, 0)).toBeNull()
+  })
+})

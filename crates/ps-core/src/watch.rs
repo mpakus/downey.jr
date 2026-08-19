@@ -36,6 +36,16 @@ pub enum WatchUpdate {
     },
 }
 
+/// Coalesced filesystem update emitted to the UI.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct FsChangedEvent {
+    /// Project that produced the update.
+    pub project_id: String,
+    /// Debounced paths or an expanded-directory rescan.
+    pub update: WatchUpdate,
+}
+
 /// A recursive project watcher that emits debounced updates.
 pub struct ProjectWatcher {
     root: PathBuf,
@@ -272,6 +282,47 @@ mod tests {
             WatchUpdate::PathsChanged {
                 paths: vec![PathBuf::from("a.md"), PathBuf::from("b.md")]
             }
+        );
+    }
+
+    #[test]
+    fn quiet_windows_emit_nothing() {
+        assert!(finish_update(BTreeSet::new(), false, Vec::new()).is_none());
+    }
+
+    #[test]
+    fn collect_event_marks_backend_errors_and_rescans_as_overflow() {
+        let root = Path::new("/tmp/project");
+        let mut changed = BTreeSet::new();
+        let mut overflow = false;
+        collect_event(
+            root,
+            Err(notify::Error::generic("lost events")),
+            &mut changed,
+            &mut overflow,
+        );
+        assert!(overflow);
+        assert!(changed.is_empty());
+
+        overflow = false;
+        let mut event = notify::Event::new(notify::EventKind::Any);
+        event.attrs.set_flag(notify::event::Flag::Rescan);
+        collect_event(root, Ok(event), &mut changed, &mut overflow);
+        assert!(overflow);
+
+        overflow = false;
+        let event =
+            notify::Event::new(notify::EventKind::Any).add_path(root.join("notes/./../guide.md"));
+        collect_event(root, Ok(event), &mut changed, &mut overflow);
+        assert!(!overflow);
+        assert!(changed.contains(Path::new("notes/guide.md")));
+    }
+
+    #[test]
+    fn normalize_relative_skips_dot_components() {
+        assert_eq!(
+            normalize_relative(Path::new("a/./b/../c.md")),
+            Some(PathBuf::from("a/b/c.md"))
         );
     }
 }

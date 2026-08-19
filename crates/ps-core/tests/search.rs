@@ -56,3 +56,15 @@ fn page_skips_offset_and_reports_total() {
     assert_eq!(total, 2);
     assert_eq!(items.len(), 1);
 }
+
+#[test]
+fn equal_scores_are_ordered_by_name_then_id() {
+    let mut search = ProjectSearch::new();
+    search.upsert(project("b", "Alpha", "/tmp/one"));
+    search.upsert(project("a", "Alpha", "/tmp/two"));
+
+    let ranked = search.search("alpha", 10);
+    assert_eq!(ranked[0].id, "a");
+    assert_eq!(ranked[1].id, "b");
+    assert!(search.search("alpha", 0).is_empty());
+}

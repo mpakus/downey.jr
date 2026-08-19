@@ -1,0 +1,26 @@
+{
+  "id": "solarized-dark",
+  "name": "Solarized Dark",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "#002B36",
+    "bg-elev": "#073642",
+    "sidebar": "#073642",
+    "fg": "#839496",
+    "fg-muted": "#586E75",
+    "border": "#0A4452",
+    "accent": "#CB4B16",
+    "selection": "#073642",
+    "code-bg": "#073642",
+    "hl-kw": "#859900",
+    "hl-str": "#2AA198",
+    "hl-num": "#D33682",
+    "hl-com": "#586E75",
+    "hl-fn": "#268BD2",
+    "hl-type": "#B58900",
+    "ed-cursor": "#CB4B16",
+    "ed-sel": "#1A4A5A",
+    "ed-active-line": "#003542",
+    "ed-syntax": "#586E75"
+  }
+}

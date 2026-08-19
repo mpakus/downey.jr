@@ -1,0 +1,26 @@
+{
+  "id": "paper-light",
+  "name": "Paper Light",
+  "appearance": "light",
+  "tokens": {
+    "bg": "#FBFAF7",
+    "bg-elev": "#FFFFFF",
+    "sidebar": "#F2F0EB",
+    "fg": "#1E1C1A",
+    "fg-muted": "#6B6763",
+    "border": "#E3DFD8",
+    "accent": "#C1452F",
+    "selection": "#F0DFD8",
+    "code-bg": "#F4F2ED",
+    "hl-kw": "#8B2F8B",
+    "hl-str": "#2E7D32",
+    "hl-num": "#B35C00",
+    "hl-com": "#8C8880",
+    "hl-fn": "#1565C0",
+    "hl-type": "#00695C",
+    "ed-cursor": "#C1452F",
+    "ed-sel": "#DCE8F5",
+    "ed-active-line": "#F5F3EE",
+    "ed-syntax": "#A8A29A"
+  }
+}

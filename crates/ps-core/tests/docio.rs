@@ -1,7 +1,79 @@
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
 
-use ps_core::docio::{self, DocumentEncoding, LineEnding, SOURCE_ONLY_BYTES};
+use ps_core::Error;
+use ps_core::docio::{
+    self, DocumentEncoding, LineEnding, RestoreTraits, SOURCE_ONLY_BYTES, WrittenDocument,
+};
+
+struct RoundTripCase {
+    bytes: &'static [u8],
+    text: &'static str,
+    eol: LineEnding,
+    bom: bool,
+    trailing_newline: bool,
+}
+
+/// Eight combinations from T-160: LF/CRLF × BOM/none × trailing newline/none.
+const EIGHT_COMBINATIONS: &[RoundTripCase] = &[
+    RoundTripCase {
+        bytes: b"hello\n",
+        text: "hello\n",
+        eol: LineEnding::Lf,
+        bom: false,
+        trailing_newline: true,
+    },
+    RoundTripCase {
+        bytes: b"hello\r\n",
+        text: "hello\n",
+        eol: LineEnding::CrLf,
+        bom: false,
+        trailing_newline: true,
+    },
+    RoundTripCase {
+        bytes: b"\xEF\xBB\xBFhello\n",
+        text: "hello\n",
+        eol: LineEnding::Lf,
+        bom: true,
+        trailing_newline: true,
+    },
+    RoundTripCase {
+        bytes: b"\xEF\xBB\xBFhello\r\n",
+        text: "hello\n",
+        eol: LineEnding::CrLf,
+        bom: true,
+        trailing_newline: true,
+    },
+    RoundTripCase {
+        bytes: b"hello",
+        text: "hello",
+        eol: LineEnding::Lf,
+        bom: false,
+        trailing_newline: false,
+    },
+    RoundTripCase {
+        bytes: b"hello\r\nworld",
+        text: "hello\nworld",
+        eol: LineEnding::CrLf,
+        bom: false,
+        trailing_newline: false,
+    },
+    RoundTripCase {
+        bytes: b"\xEF\xBB\xBFhello",
+        text: "hello",
+        eol: LineEnding::Lf,
+        bom: true,
+        trailing_newline: false,
+    },
+    RoundTripCase {
+        bytes: b"\xEF\xBB\xBFhello\r\nworld",
+        text: "hello\nworld",
+        eol: LineEnding::CrLf,
+        bom: true,
+        trailing_newline: false,
+    },
+];
 
 fn project_file(name: &str, bytes: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
     let temp = tempfile::tempdir().expect("temporary directory");
@@ -12,37 +84,35 @@ fn project_file(name: &str, bytes: &[u8]) -> (tempfile::TempDir, std::path::Path
     (temp, root)
 }
 
-#[test]
-fn reads_lf_and_crlf_with_and_without_a_bom() {
-    let cases: &[(&[u8], &str, LineEnding, bool)] = &[
-        (b"hello\n", "hello\n", LineEnding::Lf, false),
-        (b"hello\r\n", "hello\r\n", LineEnding::CrLf, false),
-        (b"\xEF\xBB\xBFhello\n", "hello\n", LineEnding::Lf, true),
-        (
-            b"\xEF\xBB\xBFhello\r\n",
-            "hello\r\n",
-            LineEnding::CrLf,
-            true,
-        ),
-        (b"hello", "hello", LineEnding::Lf, false),
-        (b"hello\r\nworld", "hello\r\nworld", LineEnding::CrLf, false),
-        (b"\xEF\xBB\xBFhello", "hello", LineEnding::Lf, true),
-        (
-            b"\xEF\xBB\xBFhello\r\nworld",
-            "hello\r\nworld",
-            LineEnding::CrLf,
-            true,
-        ),
-    ];
+fn write_without_edits(
+    root: &Path,
+    rel: &str,
+    loaded: &ps_core::docio::LoadedDocument,
+) -> WrittenDocument {
+    docio::write_doc(
+        root,
+        Path::new(rel),
+        &loaded.source.text,
+        &loaded.hash,
+        RestoreTraits::from_source(&loaded.source),
+    )
+    .expect("write")
+}
 
-    for (bytes, text, eol, bom) in cases {
-        let (_temp, root) = project_file("note.md", bytes);
+#[test]
+fn reads_eight_line_ending_bom_and_trailing_newline_combinations() {
+    assert_eq!(EIGHT_COMBINATIONS.len(), 8);
+
+    for case in EIGHT_COMBINATIONS {
+        let (_temp, root) = project_file("note.md", case.bytes);
         let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
-        assert_eq!(loaded.source.text, *text);
-        assert_eq!(loaded.source.eol, *eol);
-        assert_eq!(loaded.source.bom, *bom);
+        assert_eq!(loaded.source.text, case.text, "bytes={:?}", case.bytes);
+        assert_eq!(loaded.source.eol, case.eol);
+        assert_eq!(loaded.source.bom, case.bom);
+        assert_eq!(loaded.source.trailing_newline, case.trailing_newline);
         assert_eq!(loaded.source.encoding, DocumentEncoding::Utf8);
         assert!(loaded.source.writable);
+        assert!(loaded.source.readonly_reason.is_none());
         assert!(!loaded.source_only);
     }
 }
@@ -76,6 +146,24 @@ fn rejects_paths_outside_the_project() {
     assert!(docio::read_doc(&root, Path::new("..")).is_err());
 }
 
+#[test]
+fn rejects_a_directory_and_a_missing_file() {
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    fs::create_dir(root.join("chapters")).expect("folder");
+    let err = docio::read_doc(&root, Path::new("chapters")).expect_err("directory");
+    assert!(err.to_string().contains("folders cannot be opened"));
+    assert!(docio::read_doc(&root, Path::new("missing.md")).is_err());
+}
+
+#[test]
+fn lone_carriage_return_is_treated_as_lf() {
+    let (_temp, root) = project_file("note.md", b"hello\rworld");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    assert_eq!(loaded.source.eol, LineEnding::Lf);
+    assert_eq!(loaded.source.text, "hello\rworld");
+    assert!(!loaded.source.trailing_newline);
+}
+
 #[cfg(unix)]
 #[test]
 fn unwritable_utf8_files_are_marked_read_only() {
@@ -91,4 +179,159 @@ fn unwritable_utf8_files_are_marked_read_only() {
     assert!(!loaded.source.writable);
     assert!(!loaded.source_only);
     assert!(loaded.source.readonly_reason.is_some());
+}
+
+#[cfg(unix)]
+#[test]
+fn unreadable_files_surface_as_io_errors() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    let path = root.join("note.md");
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o000)).expect("lock");
+    let result = docio::read_doc(&root, Path::new("note.md"));
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("unlock");
+    assert!(result.is_err());
+}
+
+#[test]
+fn write_doc_round_trips_eight_combinations_byte_for_byte() {
+    for case in EIGHT_COMBINATIONS {
+        let (_temp, root) = project_file("note.md", case.bytes);
+        let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+        let written = write_without_edits(&root, "note.md", &loaded);
+        assert_eq!(fs::read(root.join("note.md")).expect("disk"), case.bytes);
+        assert_eq!(written.hash, loaded.hash);
+        assert_eq!(written.size, case.bytes.len() as u64);
+    }
+}
+
+#[test]
+fn write_doc_restores_bom_eol_and_trailing_newline_on_disk() {
+    for case in EIGHT_COMBINATIONS {
+        let (_temp, root) = project_file("note.md", b"seed\n");
+        let seed = docio::read_doc(&root, Path::new("note.md")).expect("seed");
+        let written = docio::write_doc(
+            &root,
+            Path::new("note.md"),
+            case.text,
+            &seed.hash,
+            RestoreTraits {
+                eol: case.eol,
+                bom: case.bom,
+                trailing_newline: case.trailing_newline,
+            },
+        )
+        .expect("write");
+        assert!(!written.skipped, "bytes={:?}", case.bytes);
+        assert_eq!(fs::read(root.join("note.md")).expect("disk"), case.bytes);
+        assert_eq!(written.size, case.bytes.len() as u64);
+
+        let loaded = docio::read_doc(&root, Path::new("note.md")).expect("re-read");
+        assert_eq!(written.hash, loaded.hash);
+        assert_eq!(loaded.source.text, case.text);
+        assert_eq!(loaded.source.eol, case.eol);
+        assert_eq!(loaded.source.bom, case.bom);
+        assert_eq!(loaded.source.trailing_newline, case.trailing_newline);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn write_doc_preserves_file_permissions() {
+    use std::os::unix::fs::PermissionsExt;
+
+    for mode in [0o644_u32, 0o600] {
+        let (_temp, root) = project_file("note.md", b"seed\n");
+        let path = root.join("note.md");
+        fs::set_permissions(&path, fs::Permissions::from_mode(mode)).expect("chmod");
+        let seed = docio::read_doc(&root, Path::new("note.md")).expect("seed");
+        docio::write_doc(
+            &root,
+            Path::new("note.md"),
+            "hello\n",
+            &seed.hash,
+            RestoreTraits {
+                eol: LineEnding::Lf,
+                bom: false,
+                trailing_newline: true,
+            },
+        )
+        .expect("write");
+        let kept = fs::metadata(&path).expect("metadata").permissions().mode() & 0o777;
+        assert_eq!(kept, mode);
+        assert_eq!(fs::read(&path).expect("disk"), b"hello\n");
+    }
+}
+
+#[test]
+fn write_doc_skips_when_encoded_bytes_match_disk() {
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    let path = root.join("note.md");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    let before = fs::metadata(&path)
+        .expect("metadata")
+        .modified()
+        .expect("mtime");
+
+    let written = write_without_edits(&root, "note.md", &loaded);
+    assert!(written.skipped);
+    let after = fs::metadata(&path)
+        .expect("metadata")
+        .modified()
+        .expect("mtime");
+    assert_eq!(after, before);
+    assert_eq!(fs::read(&path).expect("disk"), b"hello\n");
+}
+
+#[test]
+fn write_doc_skip_does_not_notify_the_watcher() {
+    use ps_core::watch::ProjectWatcher;
+
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    let watcher = ProjectWatcher::start(&root).expect("watcher");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    let written = write_without_edits(&root, "note.md", &loaded);
+    assert!(written.skipped);
+    std::thread::sleep(Duration::from_millis(400));
+    assert!(
+        watcher.try_recv().is_none(),
+        "identical save must not emit a filesystem event"
+    );
+}
+
+#[test]
+fn write_doc_returns_conflict_and_does_not_overwrite_external_bytes() {
+    let (_temp, root) = project_file("note.md", b"original\n");
+    let path = root.join("note.md");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    fs::write(&path, b"from another process\n").expect("external edit");
+
+    let error = docio::write_doc(
+        &root,
+        Path::new("note.md"),
+        &loaded.source.text,
+        &loaded.hash,
+        RestoreTraits::from_source(&loaded.source),
+    )
+    .expect_err("conflict");
+    assert!(matches!(error, Error::DocumentConflict { .. }), "{error:?}");
+    assert!(error.to_string().contains("changed on disk"));
+    assert_eq!(fs::read(&path).expect("disk"), b"from another process\n");
+}
+
+#[test]
+fn write_doc_rejects_paths_outside_the_project() {
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    assert!(
+        docio::write_doc(
+            &root,
+            Path::new("../escape.md"),
+            &loaded.source.text,
+            &loaded.hash,
+            RestoreTraits::from_source(&loaded.source),
+        )
+        .is_err()
+    );
 }

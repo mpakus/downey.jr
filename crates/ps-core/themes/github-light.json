@@ -1,0 +1,26 @@
+{
+  "id": "github-light",
+  "name": "GitHub Light",
+  "appearance": "light",
+  "tokens": {
+    "bg": "#FFFFFF",
+    "bg-elev": "#F6F8FA",
+    "sidebar": "#F6F8FA",
+    "fg": "#1F2328",
+    "fg-muted": "#656D76",
+    "border": "#D0D7DE",
+    "accent": "#0969DA",
+    "selection": "#ADD6FF",
+    "code-bg": "#F6F8FA",
+    "hl-kw": "#CF222E",
+    "hl-str": "#0A3069",
+    "hl-num": "#0550AE",
+    "hl-com": "#6E7781",
+    "hl-fn": "#8250DF",
+    "hl-type": "#116329",
+    "ed-cursor": "#0969DA",
+    "ed-sel": "#ADD6FF",
+    "ed-active-line": "#F6F8FA",
+    "ed-syntax": "#6E7781"
+  }
+}

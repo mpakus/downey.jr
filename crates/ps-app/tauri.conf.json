@@ -10,22 +10,36 @@
     "frontendDist": "../../ui/dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",
         "title": "1537paperstreet",
         "width": 1180,
         "height": 780,
-        "visible": false
+        "visible": false,
+        "transparent": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "dragDropEnabled": true,
+        "trafficLightPosition": { "x": 14, "y": 18 }
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; connect-src 'self'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; media-src 'self' asset:; connect-src 'self'"
     }
   },
   "bundle": {
     "active": true,
     "targets": ["app"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
     "macOS": {
       "minimumSystemVersion": "12.0",
       "hardenedRuntime": true

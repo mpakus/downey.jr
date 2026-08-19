@@ -118,3 +118,99 @@ fn keep_both_and_skip_do_not_destroy_existing_files() {
         b"Old text"
     );
 }
+
+#[test]
+fn skips_an_item_that_is_already_in_the_destination_folder() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(root.join("draft.md"), b"Stay").expect("source");
+
+    let outcomes = fsops::move_items(
+        &root,
+        &[PathBuf::from("draft.md")],
+        Path::new(""),
+        ConflictStrategy::Replace,
+        |_| Ok(()),
+        |_| {},
+    )
+    .expect("skipped in place");
+
+    assert!(matches!(&outcomes[0], MoveOutcome::Skipped { .. }));
+    assert_eq!(fs::read(root.join("draft.md")).expect("unchanged"), b"Stay");
+}
+
+#[test]
+fn rejects_a_file_as_the_move_destination() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(root.join("draft.md"), b"Move me").expect("source");
+    fs::write(root.join("target.md"), b"Not a folder").expect("file destination");
+
+    let error = fsops::move_items(
+        &root,
+        &[PathBuf::from("draft.md")],
+        Path::new("target.md"),
+        ConflictStrategy::Replace,
+        |_| Ok(()),
+        |_| {},
+    )
+    .expect_err("destination must be a folder");
+
+    assert!(error.to_string().contains("not a folder"));
+    assert_eq!(fs::read(root.join("draft.md")).expect("source"), b"Move me");
+}
+
+#[test]
+fn rejects_moving_a_folder_into_itself() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir_all(root.join("chapters/nested")).expect("folder");
+    fs::write(root.join("chapters/nested/note.md"), b"Keep").expect("note");
+
+    let error = fsops::move_items(
+        &root,
+        &[PathBuf::from("chapters")],
+        Path::new("chapters"),
+        ConflictStrategy::Replace,
+        |_| Ok(()),
+        |_| {},
+    )
+    .expect_err("cannot move a folder into itself");
+
+    assert!(error.to_string().contains("into itself"));
+    assert_eq!(
+        fs::read(root.join("chapters/nested/note.md")).expect("kept"),
+        b"Keep"
+    );
+}
+
+#[test]
+fn failed_move_snapshot_leaves_both_files() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir_all(root.join("archive")).expect("archive");
+    fs::write(root.join("draft.md"), b"New").expect("source");
+    fs::write(root.join("archive/draft.md"), b"Old").expect("destination");
+
+    let result = fsops::move_items(
+        &root,
+        &[PathBuf::from("draft.md")],
+        Path::new("archive"),
+        ConflictStrategy::Replace,
+        |_| {
+            Err(ps_core::Error::InvalidProject {
+                reason: "snapshot failed",
+            })
+        },
+        |_| {},
+    );
+
+    assert!(result.is_err());
+    assert_eq!(fs::read(root.join("draft.md")).expect("source"), b"New");
+    assert_eq!(
+        fs::read(root.join("archive/draft.md")).expect("destination"),
+        b"Old"
+    );
+}

@@ -61,3 +61,30 @@ fn rewrites_only_paths_that_resolve_inside_the_project() {
             .contains(outside.path().to_string_lossy().as_ref())
     );
 }
+
+#[test]
+fn reserves_png_width_and_height_on_project_images() {
+    let project = tempdir().expect("temporary project");
+    let mut png = vec![0_u8; 24];
+    png[..8].copy_from_slice(b"\x89PNG\r\n\x1a\n");
+    png[16..20].copy_from_slice(&320_u32.to_be_bytes());
+    png[20..24].copy_from_slice(&240_u32.to_be_bytes());
+    fs::write(project.path().join("cover.png"), png).expect("png");
+
+    let html = render_project(
+        "![Cover](cover.png)",
+        project.path(),
+        Path::new("readme.md"),
+        "project-1",
+    );
+
+    assert!(
+        html.html
+            .contains("src=\"asset://localhost/project-1/cover.png\""),
+        "{}",
+        html.html
+    );
+    assert!(html.html.contains("width=\"320\""), "{}", html.html);
+    assert!(html.html.contains("height=\"240\""), "{}", html.html);
+    assert!(html.html.contains("loading=\"lazy\""), "{}", html.html);
+}

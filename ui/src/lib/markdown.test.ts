@@ -1,0 +1,62 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  applyMarkdownCommand,
+  toggleHeading,
+  toggleLinePrefix,
+  wrapInline,
+} from './markdown'
+
+describe('wrapInline', () => {
+  it('wraps the selection and places the caret on the inner text', () => {
+    expect(wrapInline('hello', 0, 5, '**', '**')).toEqual({
+      text: '**hello**',
+      start: 2,
+      end: 7,
+    })
+  })
+
+  it('unwraps marks that already surround the selection', () => {
+    expect(wrapInline('**hello**', 2, 7, '**', '**')).toEqual({
+      text: 'hello',
+      start: 0,
+      end: 5,
+    })
+  })
+})
+
+describe('toggleLinePrefix', () => {
+  it('prefixes selected lines and strips the same prefix on a second call', () => {
+    const listed = toggleLinePrefix('one\ntwo', 0, 7, '- ')
+    expect(listed.text).toBe('- one\n- two')
+    expect(toggleLinePrefix(listed.text, listed.start, listed.end, '- ').text).toBe(
+      'one\ntwo',
+    )
+  })
+})
+
+describe('toggleHeading', () => {
+  it('sets and clears an ATX heading', () => {
+    const headed = toggleHeading('Title', 0, 5, 2)
+    expect(headed.text).toBe('## Title')
+    expect(toggleHeading(headed.text, 0, headed.text.length, 2).text).toBe('Title')
+  })
+})
+
+describe('applyMarkdownCommand', () => {
+  it('inserts a Markdown image snippet', () => {
+    expect(applyMarkdownCommand('cat', 0, 3, 'edit-image')).toEqual({
+      text: '![cat]()',
+      start: 2,
+      end: 5,
+    })
+  })
+
+  it('leaves unknown commands unchanged', () => {
+    expect(applyMarkdownCommand('note', 0, 4, 'nope')).toEqual({
+      text: 'note',
+      start: 0,
+      end: 4,
+    })
+  })
+})

@@ -75,6 +75,16 @@ pub enum MoveOutcome {
 ///
 /// Each name is normalized to NFC. The path's parent must already exist so it can
 /// be canonicalized and checked against the canonical project root.
+///
+/// ```
+/// use std::path::Path;
+/// use ps_core::fsops::resolve;
+///
+/// let root = tempfile::tempdir().unwrap();
+/// let notes = resolve(root.path(), Path::new("notes.md")).unwrap();
+/// assert!(notes.starts_with(root.path().canonicalize().unwrap()));
+/// assert!(resolve(root.path(), Path::new("../secret.md")).is_err());
+/// ```
 pub fn resolve(project_root: &Path, rel_path: &Path) -> Result<PathBuf> {
     let canonical_root = project_root
         .canonicalize()
@@ -179,6 +189,60 @@ pub fn create_file(project_root: &Path, rel_path: &Path) -> Result<PathBuf> {
     }
     sync_parent(&destination)?;
     Ok(destination)
+}
+
+/// Kind of untitled item created from the tree or File menu.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum UntitledKind {
+    /// An empty Markdown file named `untitled.md` (or the next free numbered name).
+    File,
+    /// A folder named `untitled` (or the next free numbered name).
+    Folder,
+}
+
+/// Creates an untitled Markdown file or folder in `parent_rel`.
+///
+/// If `untitled.md` / `untitled` is taken, the next numbered name suggested by
+/// a name conflict is used.
+pub fn create_untitled(
+    project_root: &Path,
+    parent_rel: &Path,
+    kind: UntitledKind,
+) -> Result<PathBuf> {
+    let name = match kind {
+        UntitledKind::File => "untitled.md",
+        UntitledKind::Folder => "untitled",
+    };
+    let first = join_parent(parent_rel, name);
+    match create_untitled_kind(project_root, &first, kind) {
+        Ok(path) => Ok(path),
+        Err(Error::NameConflict { suggested_name, .. }) => create_untitled_kind(
+            project_root,
+            &join_parent(parent_rel, &suggested_name),
+            kind,
+        ),
+        Err(error) => Err(error),
+    }
+}
+
+fn join_parent(parent_rel: &Path, name: &str) -> PathBuf {
+    if parent_rel.as_os_str().is_empty() {
+        PathBuf::from(name)
+    } else {
+        parent_rel.join(name)
+    }
+}
+
+fn create_untitled_kind(
+    project_root: &Path,
+    rel_path: &Path,
+    kind: UntitledKind,
+) -> Result<PathBuf> {
+    match kind {
+        UntitledKind::File => create_file(project_root, rel_path),
+        UntitledKind::Folder => mkdir(project_root, rel_path),
+    }
 }
 
 /// Renames one project item atomically without replacing an existing item.
@@ -293,6 +357,140 @@ where
     Ok(CopyOutcome::Copied { path: destination })
 }
 
+/// Copies files or folders from absolute paths into a project directory.
+///
+/// Sources may live outside the project (Finder import). Every destination is
+/// resolved through [`resolve`]. Symbolic links are rejected.
+pub fn import_into<B, P>(
+    project_root: &Path,
+    to_dir: &Path,
+    sources: &[PathBuf],
+    conflict: ConflictStrategy,
+    mut before_replace: B,
+    mut on_progress: P,
+) -> Result<Vec<CopyOutcome>>
+where
+    B: FnMut(&Path) -> Result<()>,
+    P: FnMut(CopyProgress),
+{
+    let destination_dir = resolve(project_root, to_dir)?;
+    let destination_dir = destination_dir
+        .canonicalize()
+        .map_err(|source| Error::io("open the import destination folder", to_dir, source))?;
+    if !destination_dir.is_dir() {
+        return Err(unsafe_path(
+            to_dir,
+            "the import destination is not a folder",
+        ));
+    }
+
+    let mut outcomes = Vec::with_capacity(sources.len());
+    for source in sources {
+        outcomes.push(import_one(
+            project_root,
+            to_dir,
+            source,
+            conflict,
+            &mut before_replace,
+            &mut on_progress,
+        )?);
+    }
+    Ok(outcomes)
+}
+
+fn import_one<B, P>(
+    project_root: &Path,
+    to_dir: &Path,
+    source: &Path,
+    conflict: ConflictStrategy,
+    before_replace: &mut B,
+    on_progress: &mut P,
+) -> Result<CopyOutcome>
+where
+    B: FnMut(&Path) -> Result<()>,
+    P: FnMut(CopyProgress),
+{
+    if source.as_os_str().as_encoded_bytes().contains(&0) {
+        return Err(unsafe_path(source, "file names cannot contain NUL bytes"));
+    }
+    let source_metadata = fs::symlink_metadata(source)
+        .map_err(|source_error| Error::io("open the import source", source, source_error))?;
+    reject_symlink(source, &source_metadata)?;
+    let canonical_source = source
+        .canonicalize()
+        .map_err(|source_error| Error::io("open the import source", source, source_error))?;
+    let file_name = canonical_source
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| unsafe_path(source, "the import source does not have a file name"))?;
+    let file_name = file_name.nfc().collect::<String>();
+    validate_name(source, &file_name)?;
+
+    let mut dest_rel = join_parent(to_dir, &file_name);
+    let mut destination = resolve_child(project_root, &dest_rel)?;
+    let destination_exists = path_is_occupied(&destination);
+    if destination_exists {
+        let same_item = destination
+            .canonicalize()
+            .ok()
+            .is_some_and(|canonical| canonical == canonical_source);
+        match conflict {
+            ConflictStrategy::Skip => {
+                return Ok(CopyOutcome::Skipped { path: destination });
+            }
+            ConflictStrategy::Replace if same_item => {
+                return Ok(CopyOutcome::Skipped { path: destination });
+            }
+            ConflictStrategy::KeepBoth => {
+                let suggested = next_available_name(&destination);
+                dest_rel = join_parent(to_dir, &suggested);
+                destination = resolve_child(project_root, &dest_rel)?;
+            }
+            ConflictStrategy::Replace => {}
+        }
+    }
+
+    if source_metadata.is_dir()
+        && (destination.starts_with(&canonical_source)
+            || (destination_exists
+                && conflict == ConflictStrategy::Replace
+                && canonical_source.starts_with(&destination)))
+    {
+        return Err(unsafe_path(
+            source,
+            "a folder cannot be imported into itself or one of its children",
+        ));
+    }
+
+    let total_bytes = measure_item(&canonical_source)?;
+    let report_progress = total_bytes > PROGRESS_THRESHOLD_BYTES;
+    let mut progress = CopyProgress {
+        bytes_copied: 0,
+        total_bytes,
+    };
+
+    if destination_exists && conflict == ConflictStrategy::Replace {
+        before_replace(&destination)?;
+        replace_with_copy(
+            &canonical_source,
+            &destination,
+            &mut progress,
+            report_progress,
+            on_progress,
+        )?;
+    } else {
+        copy_new_item(
+            &canonical_source,
+            &destination,
+            &mut progress,
+            report_progress,
+            on_progress,
+        )?;
+    }
+
+    Ok(CopyOutcome::Copied { path: destination })
+}
+
 /// Moves project items into one destination directory.
 ///
 /// Items on the same volume use an atomic rename. Cross-volume items are staged,
@@ -392,7 +590,7 @@ where
 
 /// Permanently deletes project items after all pre-delete snapshots succeed.
 ///
-/// The UI must expose this separately from [`trash`] and require explicit user
+/// The UI must expose this separately from [`trash()`] and require explicit user
 /// confirmation before calling it.
 pub fn permanently_delete<B>(
     project_root: &Path,

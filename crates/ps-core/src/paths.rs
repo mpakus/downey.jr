@@ -28,13 +28,28 @@ impl AppPaths {
     }
 
     /// Creates a path set rooted at `root`.
+    ///
+    /// ```
+    /// use ps_core::paths::AppPaths;
+    ///
+    /// let dir = tempfile::tempdir().unwrap();
+    /// let paths = AppPaths::from_root(dir.path());
+    /// assert!(paths.mermaid_cache().ends_with("cache/mermaid"));
+    /// assert!(paths.log_file().ends_with("logs/app.log"));
+    /// ```
     pub fn from_root(root: impl Into<PathBuf>) -> Self {
         Self { root: root.into() }
     }
 
     /// Creates the application root and its required subdirectories.
     pub fn ensure(&self) -> Result<()> {
-        for path in [self.root.clone(), self.themes(), self.cache(), self.logs()] {
+        for path in [
+            self.root.clone(),
+            self.themes(),
+            self.cache(),
+            self.mermaid_cache(),
+            self.logs(),
+        ] {
             std::fs::create_dir_all(&path)
                 .map_err(|source| Error::io("create the application directory", path, source))?;
         }
@@ -56,9 +71,24 @@ impl AppPaths {
         self.root.join("cache")
     }
 
+    /// Returns the on-disk Mermaid SVG cache directory.
+    pub fn mermaid_cache(&self) -> PathBuf {
+        self.cache().join("mermaid")
+    }
+
     /// Returns the application log directory.
     pub fn logs(&self) -> PathBuf {
         self.root.join("logs")
+    }
+
+    /// Returns the rotating application log file.
+    pub fn log_file(&self) -> PathBuf {
+        self.logs().join("app.log")
+    }
+
+    /// Returns the single-instance lock file.
+    pub fn instance_lock_file(&self) -> PathBuf {
+        self.root.join("instance.lock")
     }
 
     /// Returns the configuration file path.
@@ -69,5 +99,10 @@ impl AppPaths {
     /// Returns the project-list file path.
     pub fn projects_file(&self) -> PathBuf {
         self.root.join("projects.json")
+    }
+
+    /// Returns the persisted UI session file path.
+    pub fn ui_state_file(&self) -> PathBuf {
+        self.root.join("ui-state.json")
     }
 }

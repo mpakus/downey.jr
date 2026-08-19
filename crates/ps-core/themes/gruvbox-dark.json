@@ -1,0 +1,26 @@
+{
+  "id": "gruvbox-dark",
+  "name": "Gruvbox Dark",
+  "appearance": "dark",
+  "tokens": {
+    "bg": "#282828",
+    "bg-elev": "#3C3836",
+    "sidebar": "#3C3836",
+    "fg": "#EBDBB2",
+    "fg-muted": "#A89984",
+    "border": "#504945",
+    "accent": "#FE8019",
+    "selection": "#504945",
+    "code-bg": "#3C3836",
+    "hl-kw": "#FB4934",
+    "hl-str": "#B8BB26",
+    "hl-num": "#FABD2F",
+    "hl-com": "#928374",
+    "hl-fn": "#83A598",
+    "hl-type": "#8EC07C",
+    "ed-cursor": "#FE8019",
+    "ed-sel": "#3D4C3A",
+    "ed-active-line": "#32302F",
+    "ed-syntax": "#928374"
+  }
+}

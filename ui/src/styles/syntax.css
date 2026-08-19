@@ -1,0 +1,78 @@
+.preview .syntax-comment,
+.preview .syntax-punctuation.syntax-definition.syntax-comment {
+  color: var(--hl-com);
+}
+
+.preview .syntax-string,
+.preview .syntax-constant.syntax-other.syntax-symbol {
+  color: var(--hl-str);
+}
+
+.preview .syntax-constant.syntax-numeric,
+.preview .syntax-constant.syntax-language {
+  color: var(--hl-num);
+}
+
+.preview .syntax-keyword,
+.preview .syntax-storage,
+.preview .syntax-storage.syntax-type {
+  color: var(--hl-kw);
+}
+
+.preview .syntax-entity.syntax-name.syntax-function {
+  color: var(--hl-fn);
+}
+
+.preview .syntax-entity.syntax-name.syntax-class,
+.preview .syntax-entity.syntax-name.syntax-type,
+.preview .syntax-support.syntax-type {
+  color: var(--hl-type);
+}
+
+.preview .code-block {
+  position: relative;
+}
+
+.preview .code-copy {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.75rem;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.preview figure.mermaid {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  overflow: auto;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: zoom-in;
+}
+
+.preview figure.mermaid .mermaid-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.preview figure.mermaid-error {
+  cursor: default;
+  color: var(--fg);
+}
+
+.preview .mermaid-error-msg {
+  margin: 0 0 var(--space-2);
+  color: var(--accent);
+}
+
+.preview .math-display {
+  display: block;
+  overflow: auto;
+  margin: var(--space-3) 0;
+  text-align: center;
+}
