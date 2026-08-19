@@ -78,8 +78,8 @@
 
 - **Решение:** `pulldown-cmark` с включёнными GFM-опциями.
 - **Почему:** самый быстрый CommonMark-парсер в экосистеме, pull-based (итератор событий) — позволяет **на лету** перехватывать события: подменять fenced-блоки Mermaid, переписывать относительные пути, собирать TOC. Отдельно важно для редактора: `Parser::into_offset_iter` даёт байтовые смещения каждого события, а это фундамент инкрементального рендера и синхронного скролла (§ 9.6, § 9.7).
-- **Опции:** `ENABLE_TABLES | ENABLE_FOOTNOTES | ENABLE_STRIKETHROUGH | ENABLE_TASKLISTS | ENABLE_SMART_PUNCTUATION | ENABLE_HEADING_ATTRIBUTES | ENABLE_MATH`.
-- **Что теряем:** нет из коробки GFM-alerts и некоторых расширений comrak → реализуем как собственные пассы над потоком событий.
+- **Опции:** `ENABLE_TABLES | ENABLE_FOOTNOTES | ENABLE_STRIKETHROUGH | ENABLE_TASKLISTS | ENABLE_SMART_PUNCTUATION | ENABLE_HEADING_ATTRIBUTES | ENABLE_MATH | ENABLE_GFM | ENABLE_YAML_STYLE_METADATA_BLOCKS | ENABLE_DEFINITION_LIST | ENABLE_WIKILINKS`.
+- **Что теряем:** часть расширений comrak по-прежнему требует собственных пассов (YAML front matter рисуется как `<dl class="front-matter">`, wiki-ссылки резолвятся в файлы проекта). Backlinks — отдельная задача, не v1.
 
 ### ADR-003. Подсветка кода — `syntect` с **классовым** выводом, не инлайновыми стилями
 
@@ -904,7 +904,7 @@ strip = "symbols"
 - Синхронизация, облако, аккаунты, шаринг.
 - Плагины и пользовательские скрипты.
 - Экспорт в PDF/HTML (v1.1 — только ZIP).
-- Wiki-ссылки `[[...]]` и backlinks (v1.1).
+- Wiki-ссылки: рендер `[[Note]]` / `[[Note|label]]` в превью есть; панель backlinks — v1.1.
 - Множественные окна и вкладки (v1.1).
 
 ---

@@ -1,4 +1,5 @@
 import syntaxCss from '../styles/syntax.css?raw'
+import gfmCss from '../styles/gfm.css?raw'
 
 import { exportPdf } from './ipc'
 
@@ -63,8 +64,7 @@ export function wrapPrintHtml(options: {
 }): string {
   const themeId = themeSlug(options.themeId)
   const title = escapeHtml(options.title)
-  const extra = options.extraCss ?? syntaxCss
-  return `<!DOCTYPE html><html data-theme="${themeId}"><head><meta charset="utf-8"><title>${title}</title><style>${options.themeCss}\n${options.typographyCss}\n${PRINT_CSS}\n${extra}</style></head><body><article>${options.bodyHtml}</article></body></html>`
+  return `<!DOCTYPE html><html data-theme="${themeId}"><head><meta charset="utf-8"><title>${title}</title><style>${options.themeCss}\n${options.typographyCss}\n${PRINT_CSS}\n${syntaxCss}\n${gfmCss}\n${options.extraCss ?? ''}</style></head><body><article class="preview">${options.bodyHtml}</article></body></html>`
 }
 
 /** CSS variables for measure and type, taken from the live config. */

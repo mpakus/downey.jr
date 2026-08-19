@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use ps_core::fsops;
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, LinkType, Tag};
 
 use crate::blocks::SpannedEvent;
 
@@ -63,6 +63,33 @@ where
         }
     }
 
+    fn rewrite_wiki(
+        &mut self,
+        destination: pulldown_cmark::CowStr<'input>,
+    ) -> pulldown_cmark::CowStr<'input> {
+        if let Some(rewritten) = self.destinations.get(destination.as_ref()) {
+            return rewritten.clone().into();
+        }
+
+        match self.wiki_url(&destination) {
+            Ok(Some(url)) => {
+                self.destinations
+                    .insert(destination.to_string(), url.clone());
+                url.into()
+            }
+            Ok(None) => {
+                self.destinations
+                    .insert(destination.to_string(), "#missing-wiki".to_owned());
+                "#missing-wiki".into()
+            }
+            Err(()) => {
+                self.destinations
+                    .insert(destination.to_string(), "#invalid-path".to_owned());
+                "#invalid-path".into()
+            }
+        }
+    }
+
     fn asset_url(&self, destination: &str) -> Result<Option<String>, ()> {
         if destination.starts_with('#') || has_scheme(destination) {
             return Ok(None);
@@ -96,6 +123,89 @@ where
             self.project_scope
         )))
     }
+
+    fn wiki_url(&self, destination: &str) -> Result<Option<String>, ()> {
+        if destination.starts_with('#') || has_scheme(destination) {
+            return Ok(Some(destination.to_owned()));
+        }
+
+        let (path, suffix) = split_suffix(destination);
+        if path.is_empty() {
+            return Ok(Some(destination.to_owned()));
+        }
+
+        for candidate in wiki_candidates(path) {
+            let from_document = self.document_dir.join(&candidate);
+            if let Some(url) = self.existing_asset_url(&from_document, suffix)? {
+                return Ok(Some(url));
+            }
+            if let Some(url) = self.existing_asset_url(&candidate, suffix)? {
+                return Ok(Some(url));
+            }
+        }
+        Ok(None)
+    }
+
+    fn existing_asset_url(&self, relative: &Path, suffix: &str) -> Result<Option<String>, ()> {
+        if relative
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+        {
+            return Err(());
+        }
+        let Ok(resolved) = fsops::resolve(self.project_root, relative) else {
+            return Ok(None);
+        };
+        if !resolved.is_file() {
+            return Ok(None);
+        }
+        self.asset_url_for_relative(relative, suffix).map(Some)
+    }
+
+    fn asset_url_for_relative(&self, relative: &Path, suffix: &str) -> Result<String, ()> {
+        if self.project_scope.is_empty()
+            || !self
+                .project_scope
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+        {
+            return Err(());
+        }
+
+        let canonical_root = self.canonical_root.as_ref().ok_or(())?;
+        let resolved = fsops::resolve(self.project_root, relative).map_err(|_| ())?;
+        let relative = resolved.strip_prefix(canonical_root).map_err(|_| ())?;
+        let relative = relative
+            .iter()
+            .map(|part| part.to_str().ok_or(()))
+            .collect::<Result<Vec<_>, _>>()?
+            .join("/");
+
+        Ok(format!(
+            "asset://localhost/{}/{relative}{suffix}",
+            self.project_scope
+        ))
+    }
+}
+
+fn wiki_candidates(path: &str) -> Vec<PathBuf> {
+    let base = PathBuf::from(path);
+    if has_doc_extension(&base) {
+        vec![base]
+    } else {
+        vec![
+            base.with_extension("md"),
+            base.with_extension("markdown"),
+            base.join("index.md"),
+        ]
+    }
+}
+
+fn has_doc_extension(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|ext| ext.to_str()),
+        Some("md" | "markdown" | "mdown" | "txt")
+    )
 }
 
 impl<'input, I> Iterator for Links<'input, '_, I>
@@ -107,6 +217,17 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let (event, source_range) = self.events.next()?;
         let event = match event {
+            Event::Start(Tag::Link {
+                link_type: LinkType::WikiLink { has_pothole },
+                dest_url,
+                title,
+                id,
+            }) => Event::Start(Tag::Link {
+                link_type: LinkType::WikiLink { has_pothole },
+                dest_url: self.rewrite_wiki(dest_url),
+                title,
+                id,
+            }),
             Event::Start(Tag::Link {
                 link_type,
                 dest_url,
@@ -135,14 +256,14 @@ where
     }
 }
 
-fn has_scheme(destination: &str) -> bool {
+pub(crate) fn has_scheme(destination: &str) -> bool {
     destination
         .char_indices()
         .take_while(|(_, character)| !matches!(character, '/' | '?' | '#'))
         .any(|(_, character)| character == ':')
 }
 
-fn split_suffix(destination: &str) -> (&str, &str) {
+pub(crate) fn split_suffix(destination: &str) -> (&str, &str) {
     destination
         .char_indices()
         .find(|(_, character)| matches!(character, '?' | '#'))

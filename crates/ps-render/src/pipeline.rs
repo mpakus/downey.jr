@@ -6,11 +6,14 @@ use pulldown_cmark::{Options, Parser, html};
 
 use crate::blocks::{BlockEvent, Blocks, RenderedBlock, SpannedEvent};
 use crate::chunks::{CLOSE_SECTION, Chunks, OPEN_SECTION};
+use crate::front_matter::FrontMatter;
+use crate::gfm::TaskLists;
 use crate::highlight::Highlight;
 use crate::links::Links;
 use crate::mermaid::Mermaid;
 use crate::sanitize;
 use crate::toc::{HeadingIds, TocItem};
+use crate::wiki::WikiHtml;
 
 /// Options that affect Markdown rendering.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -143,6 +146,7 @@ fn finish_render<'events>(
     let mut toc = Vec::new();
     let mut mermaid_figures = Vec::new();
     let has_headings = may_have_heading(markdown);
+    let events = WikiHtml::new(TaskLists::new(FrontMatter::new(events)));
 
     let mermaid_prefix = if markdown.contains("mermaid") {
         let prefix = format!("PSMERMAID{}__", blake3::hash(markdown.as_bytes()).to_hex());
@@ -252,4 +256,8 @@ fn markdown_options() -> Options {
         | Options::ENABLE_SMART_PUNCTUATION
         | Options::ENABLE_HEADING_ATTRIBUTES
         | Options::ENABLE_MATH
+        | Options::ENABLE_GFM
+        | Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+        | Options::ENABLE_DEFINITION_LIST
+        | Options::ENABLE_WIKILINKS
 }

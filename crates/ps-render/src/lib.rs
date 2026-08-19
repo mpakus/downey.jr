@@ -5,6 +5,8 @@
 mod blocks;
 mod cache;
 mod chunks;
+mod front_matter;
+mod gfm;
 mod highlight;
 mod images;
 mod links;
@@ -12,6 +14,7 @@ mod mermaid;
 mod pipeline;
 mod sanitize;
 mod toc;
+mod wiki;
 
 pub use blocks::RenderedBlock;
 pub use cache::{CacheError, CacheResult, RenderCache};

@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- Превью понимает GitHub Flavored Markdown шире: чек-листы, alerts
+  (`> [!NOTE]`), definition lists, YAML front matter и wiki-ссылки
+  `[[Note]]` / `[[Note|label]]`. Подсветка fenced-блоков (Rust, Python,
+  Ruby, Elixir, YAML, JS/TS и др.) через `syntect`. В редакторе — кнопки
+  Task и Wiki.
+- В правом верхнем углу превью — Full size: чтение на всё окно (под
+  титлбаром); повторный клик или Escape возвращают обычный вид.
+
 ## [0.1.0] - 2026-08-19
 
 ### Fixed
@@ -160,4 +170,3 @@
 
 [Unreleased]: https://github.com/mpakus/downey.jr/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/mpakus/downey.jr/releases/tag/v0.1.0
-

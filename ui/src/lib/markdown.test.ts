@@ -29,9 +29,9 @@ describe('toggleLinePrefix', () => {
   it('prefixes selected lines and strips the same prefix on a second call', () => {
     const listed = toggleLinePrefix('one\ntwo', 0, 7, '- ')
     expect(listed.text).toBe('- one\n- two')
-    expect(toggleLinePrefix(listed.text, listed.start, listed.end, '- ').text).toBe(
-      'one\ntwo',
-    )
+    expect(
+      toggleLinePrefix(listed.text, listed.start, listed.end, '- ').text,
+    ).toBe('one\ntwo')
   })
 })
 
@@ -39,7 +39,9 @@ describe('toggleHeading', () => {
   it('sets and clears an ATX heading', () => {
     const headed = toggleHeading('Title', 0, 5, 2)
     expect(headed.text).toBe('## Title')
-    expect(toggleHeading(headed.text, 0, headed.text.length, 2).text).toBe('Title')
+    expect(toggleHeading(headed.text, 0, headed.text.length, 2).text).toBe(
+      'Title',
+    )
   })
 })
 
@@ -49,6 +51,33 @@ describe('applyMarkdownCommand', () => {
       text: '![cat]()',
       start: 2,
       end: 5,
+    })
+  })
+
+  it('cycles a GFM task list prefix', () => {
+    const open = applyMarkdownCommand('ship', 0, 4, 'edit-task')
+    expect(open.text).toBe('- [ ] ship')
+    const checked = applyMarkdownCommand(
+      open.text,
+      0,
+      open.text.length,
+      'edit-task',
+    )
+    expect(checked.text).toBe('- [x] ship')
+    const cleared = applyMarkdownCommand(
+      checked.text,
+      0,
+      checked.text.length,
+      'edit-task',
+    )
+    expect(cleared.text).toBe('ship')
+  })
+
+  it('wraps a wiki link', () => {
+    expect(applyMarkdownCommand('Guide', 0, 5, 'edit-wiki-link')).toEqual({
+      text: '[[Guide]]',
+      start: 2,
+      end: 7,
     })
   })
 

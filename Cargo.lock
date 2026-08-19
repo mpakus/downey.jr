@@ -3187,6 +3187,7 @@ dependencies = [
  "syntect",
  "tempfile",
  "thiserror 2.0.20",
+ "two-face",
 ]
 
 [[package]]
@@ -4786,6 +4787,17 @@ dependencies = [
  "quote",
  "syn 2.0.119",
  "termcolor",
+]
+
+[[package]]
+name = "two-face"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39e51b6e60e545cfdae5a4639ff423818f52372211a8d9a3e892b4b0761f76b2"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "syntect",
 ]
 
 [[package]]

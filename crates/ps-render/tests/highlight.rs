@@ -20,6 +20,34 @@ fn leaves_unknown_fenced_languages_to_the_markdown_renderer() {
 }
 
 #[test]
+fn highlights_common_language_aliases() {
+    for (fence, needle) in [
+        ("```js\nconst n = 1;\n```\n", "syntax-source syntax-js"),
+        (
+            "```python\ndef hi():\n    return 1\n```\n",
+            "syntax-source syntax-python",
+        ),
+        ("```rb\nputs 1\n```\n", "syntax-source syntax-ruby"),
+        (
+            "```elixir\ndefmodule M do\nend\n```\n",
+            "syntax-source syntax-elixir",
+        ),
+        ("```yaml\nkey: value\n```\n", "syntax-source syntax-yaml"),
+        ("```rust\nlet n = 1;\n```\n", "syntax-source syntax-rust"),
+    ] {
+        let html = render(fence);
+        assert!(
+            html.contains("<pre class=\"code\">"),
+            "missing highlighted pre for {fence:?} in {html}"
+        );
+        assert!(
+            html.contains(needle),
+            "missing {needle:?} for {fence:?} in {html}"
+        );
+    }
+}
+
+#[test]
 fn repeated_code_blocks_keep_identical_highlighted_output() {
     let html = render("```rust\nlet answer = 42;\n```\n\n```rust\nlet answer = 42;\n```\n");
 

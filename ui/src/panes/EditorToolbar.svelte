@@ -14,6 +14,7 @@
     { id: 'edit-heading-1', label: 'H1', name: 'Heading 1' },
     { id: 'edit-heading-2', label: 'H2', name: 'Heading 2' },
     { id: 'edit-list', label: 'List', name: 'List' },
+    { id: 'edit-task', label: 'Task', name: 'Task list' },
     { id: 'edit-quote', label: 'Quote', name: 'Quote' },
   ]
 </script>
@@ -39,6 +40,13 @@
       aria-label="Link"
       title="Link"
       onclick={() => oncommand('edit-link')}>Link</button
+    >
+    <button
+      type="button"
+      {disabled}
+      aria-label="Wiki link"
+      title="Wiki link"
+      onclick={() => oncommand('edit-wiki-link')}>Wiki</button
     >
   </div>
   <div class="group" role="group" aria-label="Media">
