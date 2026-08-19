@@ -1,0 +1,3 @@
+# Keep release and local macOS builds on Monterey+.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "12.0"

@@ -68,6 +68,7 @@ jobs:
       - run: git diff --exit-code -- ui/src/lib/generated
       - run: npm run check
       - run: npm run test
+      - run: python3 scripts/changelog-section.py --self-test
 
   build:
     runs-on: macos-14
