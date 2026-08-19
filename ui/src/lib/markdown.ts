@@ -21,7 +21,9 @@ export function wrapInline(
   ) {
     return {
       text:
-        text.slice(0, start - open.length) + selected + text.slice(end + close.length),
+        text.slice(0, start - open.length) +
+        selected +
+        text.slice(end + close.length),
       start: start - open.length,
       end: end - open.length,
     }
@@ -58,12 +60,46 @@ export function toggleLinePrefix(
   const block = text.slice(lineStart, lineEnd)
   const lines = block.split('\n')
   const allPrefixed =
-    lines.length > 0 && lines.every((line) => line.startsWith(prefix) || line.length === 0)
+    lines.length > 0 &&
+    lines.every((line) => line.startsWith(prefix) || line.length === 0)
   const nextLines = allPrefixed
     ? lines.map((line) =>
         line.startsWith(prefix) ? line.slice(prefix.length) : line,
       )
     : lines.map((line) => (line.length === 0 ? line : `${prefix}${line}`))
+  const nextBlock = nextLines.join('\n')
+  return {
+    text: text.slice(0, lineStart) + nextBlock + text.slice(lineEnd),
+    start: lineStart,
+    end: lineStart + nextBlock.length,
+  }
+}
+
+const TASK_CHECKED = '- [x] '
+const TASK_OPEN = '- [ ] '
+
+/** Cycles a task-list prefix on each selected line: none → open → checked → none. */
+export function toggleTaskItem(
+  text: string,
+  start: number,
+  end: number,
+): MarkdownEdit {
+  const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1
+  const after = text.indexOf('\n', end)
+  const lineEnd = after < 0 ? text.length : after
+  const block = text.slice(lineStart, lineEnd)
+  const nextLines = block.split('\n').map((line) => {
+    if (line.startsWith(TASK_CHECKED) || line.startsWith('- [X] ')) {
+      return line.slice(TASK_CHECKED.length)
+    }
+    if (line.startsWith(TASK_OPEN)) {
+      return `${TASK_CHECKED}${line.slice(TASK_OPEN.length)}`
+    }
+    if (line.startsWith('- ')) {
+      return `${TASK_OPEN}${line.slice(2)}`
+    }
+    return `${TASK_OPEN}${line}`
+  })
   const nextBlock = nextLines.join('\n')
   return {
     text: text.slice(0, lineStart) + nextBlock + text.slice(lineEnd),
@@ -124,6 +160,10 @@ export function applyMarkdownCommand(
       return wrapInline(text, start, end, '![', ']()')
     case 'edit-list':
       return toggleLinePrefix(text, start, end, '- ')
+    case 'edit-task':
+      return toggleTaskItem(text, start, end)
+    case 'edit-wiki-link':
+      return wrapInline(text, start, end, '[[', ']]')
     case 'edit-quote':
       return toggleLinePrefix(text, start, end, '> ')
     default:

@@ -24,3 +24,7 @@ UPDATE_TS_BINDINGS=1 cargo test -p ps-core --test typescript
 
 Редактор, история версий и ZIP-экспорт не входят в текущий ридер. Не добавляйте
 их «заодно»: это отдельные фазы в чеклисте.
+
+Релиз: тег `vX.Y.Z` (версия как в `package.json`) запускает
+`.github/workflows/release.yml` — universal `.app`/DMG на `macos-14` и GitHub
+Release. Подпись и нотаризация ещё не в этом workflow.

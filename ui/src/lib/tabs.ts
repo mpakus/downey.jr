@@ -41,11 +41,7 @@ export function nextAfterClose(tabs: DocTab[], closed: string): string | null {
 }
 
 /** Keeps a tab when its file is renamed. */
-export function retitleTab(
-  tabs: DocTab[],
-  from: string,
-  to: string,
-): DocTab[] {
+export function retitleTab(tabs: DocTab[], from: string, to: string): DocTab[] {
   return tabs.map((tab) =>
     tab.relPath === from ? { ...tab, relPath: to, title: tabTitle(to) } : tab,
   )

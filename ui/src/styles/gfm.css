@@ -1,0 +1,103 @@
+.preview table {
+  width: 100%;
+  margin: var(--space-4) 0;
+  border-collapse: collapse;
+}
+
+.preview th,
+.preview td {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.preview th {
+  background: var(--bg-elev);
+  font-weight: 600;
+}
+
+.preview blockquote {
+  margin: var(--space-4) 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border);
+  color: var(--fg-muted);
+}
+
+.preview blockquote.markdown-alert-note,
+.preview blockquote.markdown-alert-tip,
+.preview blockquote.markdown-alert-important,
+.preview blockquote.markdown-alert-warning,
+.preview blockquote.markdown-alert-caution {
+  color: var(--fg);
+  background: var(--bg-elev);
+}
+
+.preview blockquote.markdown-alert-note {
+  border-left-color: var(--hl-fn);
+}
+
+.preview blockquote.markdown-alert-tip {
+  border-left-color: var(--hl-type);
+}
+
+.preview blockquote.markdown-alert-important {
+  border-left-color: var(--hl-kw);
+}
+
+.preview blockquote.markdown-alert-warning,
+.preview blockquote.markdown-alert-caution {
+  border-left-color: var(--accent);
+}
+
+.preview li.task-list-item {
+  list-style: none;
+}
+
+.preview li.task-list-item > input[type='checkbox'] {
+  margin: 0 var(--space-2) 0 0;
+  vertical-align: middle;
+}
+
+.preview .front-matter {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.preview .front-matter dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.preview .front-matter dt {
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+
+.preview .front-matter dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.preview a.wiki-link.is-missing {
+  color: var(--fg-muted);
+  text-decoration-style: dashed;
+}
+
+.preview dl {
+  margin: var(--space-4) 0;
+}
+
+.preview dt {
+  font-weight: 600;
+}
+
+.preview dd {
+  margin: 0 0 var(--space-2) var(--space-4);
+}

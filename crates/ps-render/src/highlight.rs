@@ -9,6 +9,7 @@ use syntect::util::LinesWithEndings;
 use crate::blocks::SpannedEvent;
 
 static SYNTAXES: OnceLock<SyntaxSet> = OnceLock::new();
+const MAX_HIGHLIGHT_BYTES: usize = 128 * 1024;
 
 pub(crate) struct Highlight<'input, I> {
     events: I,
@@ -61,6 +62,11 @@ where
             return;
         }
 
+        if source.len() > MAX_HIGHLIGHT_BYTES {
+            self.pending = original;
+            return;
+        }
+
         match highlighted_html(&source, language, syntax, syntax_set) {
             Ok(html) => {
                 self.last_highlight = Some((language.to_owned(), source, html.clone()));
@@ -92,14 +98,34 @@ where
         }) else {
             return Some(event);
         };
-        let syntax_set = SYNTAXES.get_or_init(SyntaxSet::load_defaults_newlines);
-        let Some(syntax) = syntax_set.find_syntax_by_token(&language) else {
+        let syntax_set = SYNTAXES.get_or_init(two_face::syntax::extra_newlines);
+        let Some(syntax) = syntax_for(&language, syntax_set) else {
             return Some(event);
         };
 
         self.queue_code_block(event, &language, syntax, syntax_set);
         self.pending.pop_front()
     }
+}
+
+fn syntax_for<'set>(language: &str, syntax_set: &'set SyntaxSet) -> Option<&'set SyntaxReference> {
+    let lowered = language.to_ascii_lowercase();
+    let token = match lowered.as_str() {
+        "js" | "mjs" | "cjs" | "node" => "js",
+        "ts" | "tsx" => "ts",
+        "yml" => "yaml",
+        "rb" => "ruby",
+        "py" => "python",
+        "rs" => "rust",
+        "ex" | "exs" => "elixir",
+        "sh" | "zsh" | "bash" => "bash",
+        other => other,
+    };
+    syntax_set
+        .find_syntax_by_token(token)
+        .or_else(|| syntax_set.find_syntax_by_extension(token))
+        .or_else(|| syntax_set.find_syntax_by_token(language))
+        .or_else(|| syntax_set.find_syntax_by_extension(&lowered))
 }
 
 fn highlighted_html(

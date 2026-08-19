@@ -39,7 +39,11 @@ npm run test
 
 ## Тестовые сборки
 
-Текущий DMG для Apple Silicon не подписан Developer ID и не нотарифицирован.
-При обычном запуске macOS отклоняет его как приложение без пригодной подписи.
-Это тестовая сборка, а не готовый production-релиз; сайт распространения должен
-показывать это предупреждение рядом со ссылкой на скачивание.
+GitHub Release по тегу `v*` кладёт **universal** DMG (Apple Silicon и Intel)
+в [Releases](https://github.com/mpakus/downey.jr/releases). Сборка не подписана
+Developer ID и не нотарифицирована: при обычном запуске macOS отклоняет её.
+Это тестовая сборка, а не готовый production-релиз. Первый запуск: Right-click →
+Open или `xattr -cr /Applications/1537paperstreet.app` после копирования.
+
+Локально: `npm run tauri:build:universal` (нужны оба Rust-таргета
+`aarch64-apple-darwin` и `x86_64-apple-darwin`).

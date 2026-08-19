@@ -7,9 +7,13 @@
 1. Установите Rust (rustup, stable), Node.js 22+ и Xcode Command Line Tools.
 2. Клонируйте репозиторий.
 3. `npm install`
-4. `cargo tauri dev` — окно разработки; `cargo tauri build` — `.app` в
-   `target/release/bundle`. Иконка приложения — `icon.png` в корне репозитория;
-   `npx tauri icon icon.png` записывает PNG/ICNS в `crates/ps-app/icons/`.
+4. `cargo tauri dev` — окно разработки; `cargo tauri build` — `.app` текущей
+   архитектуры в `target/release/bundle`. Universal (arm64 + x86_64, macOS 12+):
+   `npm run tauri:build:universal` — `.app` и DMG в
+   `target/universal-apple-darwin/release/bundle`. Иконка приложения —
+   `icon.png` в корне репозитория; `npx tauri icon icon.png` записывает
+   PNG/ICNS в `crates/ps-app/icons/`.
+   Тег `v*` на GitHub собирает тот же universal DMG и публикует Release.
 
 Закрытие окна (красный светофор) не завершает программу: в правой части
 строки меню macOS остаётся иконка (`icon-system.png`). Клик возвращает окно;

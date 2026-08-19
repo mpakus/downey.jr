@@ -330,7 +330,7 @@
 
 ## P15 — Упаковка и релиз
 
-- [ ] **T-150** Universal binary (`aarch64` + `x86_64`, `lipo`), минимальная версия macOS 12.0.
+- [x] **T-150** Universal binary (`aarch64` + `x86_64`, `lipo`), минимальная версия macOS 12.0.
 - [ ] **T-151** Иконка приложения: `.icns` во всех размерах, включая @2x.
 - [ ] **T-152** Подпись Developer ID + hardened runtime + минимальные entitlements. (← T-008)
 - [ ] **T-153** Нотаризация (`notarytool` + `stapler`) в CI по тегу. (← T-152)

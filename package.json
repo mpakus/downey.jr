@@ -1,7 +1,7 @@
 {
   "name": "1537paperstreet",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "workspaces": [
     "ui"
@@ -14,6 +14,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
     "tauri": "tauri",
+    "tauri:build:universal": "tauri build --target universal-apple-darwin --bundles app,dmg",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
@@ -28,5 +29,8 @@
     "prettier-plugin-svelte": "^4.1.1",
     "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "lodash-es": "4.18.1"
   }
 }

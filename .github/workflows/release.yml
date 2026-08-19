@@ -1,0 +1,129 @@
+# Tag vX.Y.Z (or workflow_dispatch) builds one macOS app for Apple Silicon and
+# Intel. Tauri's universal-apple-darwin target compiles both Rust triples and
+# merges them with Apple `lipo` (PLAN § 16). cargo-lipo is not used: it only
+# produces iOS static libraries and is deprecated.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      publish_tag:
+        description: Optional existing tag to attach the DMG to (e.g. v0.1.0). Leave empty to only upload workflow artifacts.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  MACOSX_DEPLOYMENT_TARGET: '12.0'
+
+jobs:
+  release-macos:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Rust toolchain
+        run: rustup show
+
+      - name: Add macOS Rust targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-universal-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-universal-${{ runner.os }}-
+
+      - run: npm ci
+
+      - name: SDK for x86_64 cross-compile
+        run: echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> "$GITHUB_ENV"
+
+      - name: Build universal .app and DMG
+        run: npm run tauri -- build --target universal-apple-darwin --bundles app,dmg
+
+      - name: Verify fat binary and macOS 12+
+        run: |
+          bin="target/universal-apple-darwin/release/bundle/macos/1537paperstreet.app/Contents/MacOS/1537paperstreet"
+          bash scripts/verify-universal.sh "$bin"
+
+      - name: Collect artifacts
+        id: artifacts
+        env:
+          PUBLISH_TAG: ${{ inputs.publish_tag }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          elif [[ -n "${PUBLISH_TAG:-}" ]]; then
+            version="${PUBLISH_TAG#v}"
+          else
+            version="$(node -p "require('./package.json').version")"
+          fi
+          dmg="$(echo target/universal-apple-darwin/release/bundle/dmg/*.dmg)"
+          if [[ ! -f "$dmg" ]]; then
+            echo "DMG not found under target/universal-apple-darwin/release/bundle/dmg/" >&2
+            ls -la target/universal-apple-darwin/release/bundle/dmg/ >&2 || true
+            exit 1
+          fi
+          zip_name="1537paperstreet-${version}-macos-universal.zip"
+          ditto -c -k --keepParent \
+            target/universal-apple-darwin/release/bundle/macos/1537paperstreet.app \
+            "$zip_name"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+          echo "zip=$zip_name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: macos-universal
+          path: |
+            ${{ steps.artifacts.outputs.dmg }}
+            ${{ steps.artifacts.outputs.zip }}
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag' || inputs.publish_tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.publish_tag }}
+          VERSION: ${{ steps.artifacts.outputs.version }}
+          DMG: ${{ steps.artifacts.outputs.dmg }}
+          ZIP: ${{ steps.artifacts.outputs.zip }}
+        run: |
+          set -euo pipefail
+          pkg="$(node -p "require('./package.json').version")"
+          if [[ "$VERSION" != "$pkg" ]]; then
+            echo "tag $TAG does not match package.json version $pkg" >&2
+            exit 1
+          fi
+          python3 scripts/changelog-section.py "$VERSION" --unsigned-footer > notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "1537paperstreet $VERSION" --notes-file notes.md
+            gh release upload "$TAG" "$DMG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" \
+              --title "1537paperstreet $VERSION" \
+              --notes-file notes.md \
+              "$DMG" \
+              "$ZIP"
+          fi

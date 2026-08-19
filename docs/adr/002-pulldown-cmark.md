@@ -9,7 +9,7 @@ Rendering must be fast, support GFM features, rewrite links, collect a table of 
 
 ## Decision
 
-Use `pulldown-cmark` with tables, footnotes, strikethrough, task lists, smart punctuation, heading attributes, and math enabled. Transform its event stream in Rust.
+Use `pulldown-cmark` with tables, footnotes, strikethrough, task lists, smart punctuation, heading attributes, math, GFM alerts, YAML metadata blocks, definition lists, and wiki links enabled. Transform its event stream in Rust (front matter HTML, wiki resolution, task-list classes, classed syntect).
 
 ## Alternatives
 
@@ -17,4 +17,4 @@ Use `pulldown-cmark` with tables, footnotes, strikethrough, task lists, smart pu
 
 ## Consequences
 
-The renderer can process documents as a pull-based event stream and retain source offsets. GFM alerts and unsupported extensions require explicit passes maintained by this project.
+The renderer can process documents as a pull-based event stream and retain source offsets. Wiki backlinks remain out of scope.

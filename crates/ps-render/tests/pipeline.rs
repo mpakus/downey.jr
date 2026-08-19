@@ -10,6 +10,9 @@ fn renders_the_required_markdown_extensions() {
 
 - [x] shipped
 
+> [!NOTE]
+> Reader build.
+
 Footnote[^1] -- "quoted"
 
 Inline math: $x + y$.
@@ -27,6 +30,7 @@ $$z = 1$$
         "<del>no</del>",
         "type=\"checkbox\"",
         "class=\"footnote-reference\"",
+        "markdown-alert",
         "– “quoted”",
         "class=\"math math-inline\"",
         "class=\"math math-display\"",

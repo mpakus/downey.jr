@@ -134,9 +134,7 @@
     width: number
   } | null>(null)
 
-  const documentTitle = $derived(
-    windowTitle(active?.path, openMeta?.relPath),
-  )
+  const documentTitle = $derived(windowTitle(active?.path, openMeta?.relPath))
 
   $effect(() => {
     const title = documentTitle
@@ -1064,203 +1062,211 @@
     }}
   />
   <div class="columns">
-  {#if projectsHidden}
-    <aside class="projects-rail">
-      <button
-        type="button"
-        title="Show projects (⌘1)"
-        aria-label="Show projects"
-        aria-expanded="false"
-        onclick={() => (projectsHidden = false)}
-      >
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            d="M6 3.5 10.5 8 6 12.5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span>Projects</span>
-      </button>
-    </aside>
-  {:else}
-    <aside class="projects-pane" aria-label="Projects">
-      <Projects
-        activeId={active?.id ?? null}
-        oncollapse={() => (projectsHidden = true)}
-        onopen={(project) => {
-          void activateProject(project).catch((cause) => {
-            error = errorMessage(cause)
-          })
-        }}
-        onerror={(message) => {
-          error = message
-        }}
-        onadd={() => void pickOpen('folder')}
-        onremoved={() => {
-          const previous = active?.id
-          void loadProjects()
-            .then(() => {
-              if (!active) {
-                html = ''
-                docMeta = null
-                openMeta = null
-                return
-              }
-              if (active.id !== previous) {
-                return activateProject(active)
-              }
-            })
-            .catch((cause) => {
+    {#if projectsHidden}
+      <aside class="projects-rail">
+        <button
+          type="button"
+          title="Show projects (⌘1)"
+          aria-label="Show projects"
+          aria-expanded="false"
+          onclick={() => (projectsHidden = false)}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M6 3.5 10.5 8 6 12.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span>Projects</span>
+        </button>
+      </aside>
+    {:else}
+      <aside class="projects-pane" aria-label="Projects">
+        <Projects
+          activeId={active?.id ?? null}
+          oncollapse={() => (projectsHidden = true)}
+          onopen={(project) => {
+            void activateProject(project).catch((cause) => {
               error = errorMessage(cause)
             })
-        }}
-      />
-    </aside>
-    <div
-      class="resize"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize projects"
-      onpointerdown={(event) => {
-        event.preventDefault()
-        resizeStart = { kind: 'sidebar', x: event.clientX, width: sidebarWidth }
-      }}
-    ></div>
-  {/if}
-
-  {#if !treeHidden}
-    <aside class="tree-pane" aria-label="File tree">
-      {#if active}
-        <h1 class="project-name">{active.name}</h1>
-      {:else if projectsHidden}
-        <h1 class="project-name">1537paperstreet</h1>
-      {/if}
-
-      {#if active}
-        <Tree
-          project={active}
-          {selectedRelPaths}
-          {revealRelPath}
-          initialExpanded={expandedSeed}
-          {confirmDelete}
-          reloadToken={treeReload}
-          {destMode}
-          {watchSeq}
-          {watchDirs}
-          externalDropRel={finderDropRel}
+          }}
           onerror={(message) => {
             error = message
           }}
-          onselect={(nodes) => {
-            setSelection(nodes)
-          }}
-          ontrashed={(relPaths) => {
-            for (const relPath of relPaths) {
-              closeTab(relPath)
-            }
-          }}
-          onopen={(relPath) => {
-            void openDocument(relPath).catch((cause) => {
-              error = errorMessage(cause)
-            })
-          }}
-          onrenamed={(from, to) => {
-            tabs = retitleTab(tabs, from, to)
-            if (openMeta?.relPath === from) {
-              openMeta = { ...openMeta, relPath: to }
-            }
-          }}
-          onexpanded={(paths) => {
-            if (!active) {
-              return
-            }
-            void treeExpandedSet(active.id, paths).catch((cause) => {
-              error = errorMessage(cause)
-            })
-          }}
-          ontransfer={(mode, from, toDir) => {
-            void transfer(mode, from, toDir).catch((cause) => {
-              error = errorMessage(cause)
-            })
+          onadd={() => void pickOpen('folder')}
+          onremoved={() => {
+            const previous = active?.id
+            void loadProjects()
+              .then(() => {
+                if (!active) {
+                  html = ''
+                  docMeta = null
+                  openMeta = null
+                  return
+                }
+                if (active.id !== previous) {
+                  return activateProject(active)
+                }
+              })
+              .catch((cause) => {
+                error = errorMessage(cause)
+              })
           }}
         />
-      {:else}
-        <p class="hint">
-          Select a project, or drop a Markdown file or a folder onto the window.
-        </p>
-      {/if}
-    </aside>
-    <div
-      class="resize"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize file tree"
-      onpointerdown={(event) => {
-        event.preventDefault()
-        resizeStart = { kind: 'tree', x: event.clientX, width: treeWidth }
-      }}
-    ></div>
-  {/if}
+      </aside>
+      <div
+        class="resize"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize projects"
+        onpointerdown={(event) => {
+          event.preventDefault()
+          resizeStart = {
+            kind: 'sidebar',
+            x: event.clientX,
+            width: sidebarWidth,
+          }
+        }}
+      ></div>
+    {/if}
 
-  <main>
-    <DocTabs
-      {tabs}
-      activeRelPath={openMeta?.relPath ?? null}
-      onselect={(relPath) => {
-        void openDocument(relPath).catch((cause) => {
-          error = errorMessage(cause)
-        })
-      }}
-      onclose={closeTab}
-    />
-    <div class="workspace" class:split={viewMode === 'split'}>
-    {#if findOpen}
-      <FindBar root={articleEl ?? null} onclose={() => (findOpen = false)} />
+    {#if !treeHidden}
+      <aside class="tree-pane" aria-label="File tree">
+        {#if active}
+          <h1 class="project-name">{active.name}</h1>
+        {:else if projectsHidden}
+          <h1 class="project-name">1537paperstreet</h1>
+        {/if}
+
+        {#if active}
+          <Tree
+            project={active}
+            {selectedRelPaths}
+            {revealRelPath}
+            initialExpanded={expandedSeed}
+            {confirmDelete}
+            reloadToken={treeReload}
+            {destMode}
+            {watchSeq}
+            {watchDirs}
+            externalDropRel={finderDropRel}
+            onerror={(message) => {
+              error = message
+            }}
+            onselect={(nodes) => {
+              setSelection(nodes)
+            }}
+            ontrashed={(relPaths) => {
+              for (const relPath of relPaths) {
+                closeTab(relPath)
+              }
+            }}
+            onopen={(relPath) => {
+              void openDocument(relPath).catch((cause) => {
+                error = errorMessage(cause)
+              })
+            }}
+            onrenamed={(from, to) => {
+              tabs = retitleTab(tabs, from, to)
+              if (openMeta?.relPath === from) {
+                openMeta = { ...openMeta, relPath: to }
+              }
+            }}
+            onexpanded={(paths) => {
+              if (!active) {
+                return
+              }
+              void treeExpandedSet(active.id, paths).catch((cause) => {
+                error = errorMessage(cause)
+              })
+            }}
+            ontransfer={(mode, from, toDir) => {
+              void transfer(mode, from, toDir).catch((cause) => {
+                error = errorMessage(cause)
+              })
+            }}
+          />
+        {:else}
+          <p class="hint">
+            Select a project, or drop a Markdown file or a folder onto the
+            window.
+          </p>
+        {/if}
+      </aside>
+      <div
+        class="resize"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize file tree"
+        onpointerdown={(event) => {
+          event.preventDefault()
+          resizeStart = { kind: 'tree', x: event.clientX, width: treeWidth }
+        }}
+      ></div>
     {/if}
-    {#if viewMode !== 'preview'}
-      <Editor
-        bind:value={draftText}
-        bind:textareaEl={editorEl}
-        writable={docSourceMeta?.writable ?? false}
-        spellcheck={appConfig?.editor.spellcheck ?? true}
-      />
-    {/if}
-    {#if viewMode !== 'editor'}
-      <Preview
-        {html}
-        {emptyMessage}
-        toc={showToc ? (docMeta?.toc ?? []) : []}
-        tocWidth={tocWidth}
-        banner={docMeta?.readonlyReason ?? null}
-        themeId={activeThemeId}
-        mermaidEnabled={appConfig?.viewer.mermaid_enabled ?? true}
-        mathEnabled={appConfig?.viewer.math_enabled ?? true}
-        previewFont={appConfig?.viewer.preview_font ?? ''}
-        previewFontSize={appConfig?.viewer.preview_font_size ?? 0}
-        previewBg={appConfig?.viewer.preview_bg ?? ''}
-        previewFg={appConfig?.viewer.preview_fg ?? ''}
-        readingZoom={previewZoom}
-        bind:articleEl
-        onnavigate={(href) => {
-          void navigate(href).catch((cause) => {
+
+    <main>
+      <DocTabs
+        {tabs}
+        activeRelPath={openMeta?.relPath ?? null}
+        onselect={(relPath) => {
+          void openDocument(relPath).catch((cause) => {
             error = errorMessage(cause)
           })
         }}
-        onerror={(message) => {
-          error = message
-        }}
-        ontocresize={(event) => {
-          event.preventDefault()
-          resizeStart = { kind: 'toc', x: event.clientX, width: tocWidth }
-        }}
+        onclose={closeTab}
       />
-    {/if}
-    </div>
-  </main>
+      <div class="workspace" class:split={viewMode === 'split'}>
+        {#if findOpen}
+          <FindBar
+            root={articleEl ?? null}
+            onclose={() => (findOpen = false)}
+          />
+        {/if}
+        {#if viewMode !== 'preview'}
+          <Editor
+            bind:value={draftText}
+            bind:textareaEl={editorEl}
+            writable={docSourceMeta?.writable ?? false}
+            spellcheck={appConfig?.editor.spellcheck ?? true}
+          />
+        {/if}
+        {#if viewMode !== 'editor'}
+          <Preview
+            {html}
+            {emptyMessage}
+            toc={showToc ? (docMeta?.toc ?? []) : []}
+            {tocWidth}
+            banner={docMeta?.readonlyReason ?? null}
+            themeId={activeThemeId}
+            mermaidEnabled={appConfig?.viewer.mermaid_enabled ?? true}
+            mathEnabled={appConfig?.viewer.math_enabled ?? true}
+            previewFont={appConfig?.viewer.preview_font ?? ''}
+            previewFontSize={appConfig?.viewer.preview_font_size ?? 0}
+            previewBg={appConfig?.viewer.preview_bg ?? ''}
+            previewFg={appConfig?.viewer.preview_fg ?? ''}
+            readingZoom={previewZoom}
+            bind:articleEl
+            onnavigate={(href) => {
+              void navigate(href).catch((cause) => {
+                error = errorMessage(cause)
+              })
+            }}
+            onerror={(message) => {
+              error = message
+            }}
+            ontocresize={(event) => {
+              event.preventDefault()
+              resizeStart = { kind: 'toc', x: event.clientX, width: tocWidth }
+            }}
+          />
+        {/if}
+      </div>
+    </main>
   </div>
 
   {#if trashConfirm}

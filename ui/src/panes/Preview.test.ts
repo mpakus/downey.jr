@@ -32,6 +32,7 @@ describe('Preview', () => {
     expect(body).toContain('Hello')
     expect(body).toContain('This file is read-only.')
     expect(body).toContain('id="hello"')
+    expect(body).toContain('aria-label="Full size"')
   })
 
   it('applies saved reading colors on the preview pane', () => {

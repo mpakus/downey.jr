@@ -306,7 +306,8 @@
       activate(node)
       return
     }
-    const onName = event.target instanceof Element && event.target.closest('.name')
+    const onName =
+      event.target instanceof Element && event.target.closest('.name')
     const already =
       selectedRelPaths.length === 1 && selectedRelPaths[0] === node.relPath
     if (already && onName) {

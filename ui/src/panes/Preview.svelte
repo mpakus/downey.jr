@@ -57,6 +57,7 @@
     panY: number
   } | null>(null)
   const collapsed = new SvelteSet<string>()
+  let expanded = $state(false)
 
   function jump(event: MouseEvent, id: string) {
     event.preventDefault()
@@ -139,10 +140,31 @@
       stopMath()
     }
   })
+
+  $effect(() => {
+    if (!expanded && !modalSvg) {
+      return
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== 'Escape') {
+        return
+      }
+      if (modalSvg) {
+        modalSvg = null
+        event.preventDefault()
+        return
+      }
+      expanded = false
+      event.preventDefault()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
 </script>
 
 <div
   class="pane"
+  class:is-full={expanded}
   style:--read-font={previewFont
     ? `"${previewFont}", "Iowan Old Style", Palatino, serif`
     : undefined}
@@ -150,13 +172,49 @@
   style:--read-bg={previewBg || undefined}
   style:--read-fg={previewFg || undefined}
 >
+  <button
+    type="button"
+    class="fullsize"
+    title={expanded ? 'Exit full size' : 'Full size'}
+    aria-label={expanded ? 'Exit full size' : 'Full size'}
+    aria-pressed={expanded}
+    onclick={() => (expanded = !expanded)}
+  >
+    {#if expanded}
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M5 3H3v2M11 3h2v2M5 13H3v-2M11 13h2v-2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    {:else}
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    {/if}
+  </button>
   {#if banner}
     <p class="banner" role="status">{banner}</p>
   {/if}
 
   <div class="body">
     {#if toc.length > 0}
-      <nav class="toc" aria-label="Table of contents" style:width="{tocWidth}px">
+      <nav
+        class="toc"
+        aria-label="Table of contents"
+        style:width="{tocWidth}px"
+      >
         {#each toc as entry, index (entry.id)}
           {#if !hiddenByCollapse(index)}
             <div class="toc-row">
@@ -230,8 +288,10 @@
         }}
       >
         <!-- HTML is sanitized by ps-render before it crosses IPC. -->
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        <article bind:this={articleEl} style:zoom={readingZoom}>{@html html}</article>
+        <article bind:this={articleEl} style:zoom={readingZoom}>
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+          {@html html}
+        </article>
       </div>
     {:else}
       <p class="empty" style:zoom={readingZoom}>{emptyMessage}</p>
@@ -325,6 +385,7 @@
 
 <style>
   .pane {
+    position: relative;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -332,6 +393,39 @@
     overflow: hidden;
     background: var(--read-bg, var(--bg));
     color: var(--read-fg, var(--fg));
+  }
+
+  .pane.is-full {
+    position: fixed;
+    inset: 38px 0 0 0;
+    z-index: 25;
+  }
+
+  .fullsize {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    color: var(--fg-muted);
+    background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    -webkit-app-region: no-drag;
+  }
+
+  .fullsize svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .fullsize:hover {
+    color: var(--fg);
+    background: var(--bg-elev);
   }
 
   .banner {

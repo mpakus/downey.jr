@@ -1,6 +1,6 @@
 [package]
 name = "ps-app"
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
@@ -14,8 +14,8 @@ path = "src/main.rs"
 tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
-ps-core = { version = "0.1.0", path = "../ps-core" }
-ps-render = { version = "0.1.0", path = "../ps-render" }
+ps-core = { version = "0.2.0", path = "../ps-core" }
+ps-render = { version = "0.2.0", path = "../ps-render" }
 tauri = { version = "2.11.5", features = ["macos-private-api", "tray-icon", "image-png"] }
 tauri-plugin-dialog = "2.4.2"
 tauri-plugin-single-instance = "2.4.3"

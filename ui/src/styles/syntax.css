@@ -4,29 +4,40 @@
 }
 
 .preview .syntax-string,
-.preview .syntax-constant.syntax-other.syntax-symbol {
+.preview .syntax-constant.syntax-other.syntax-symbol,
+.preview .syntax-string.syntax-quoted {
   color: var(--hl-str);
 }
 
 .preview .syntax-constant.syntax-numeric,
-.preview .syntax-constant.syntax-language {
+.preview .syntax-constant.syntax-language,
+.preview .syntax-constant.syntax-other {
   color: var(--hl-num);
 }
 
 .preview .syntax-keyword,
 .preview .syntax-storage,
-.preview .syntax-storage.syntax-type {
+.preview .syntax-storage.syntax-type,
+.preview .syntax-keyword.syntax-operator,
+.preview .syntax-keyword.syntax-control {
   color: var(--hl-kw);
 }
 
-.preview .syntax-entity.syntax-name.syntax-function {
+.preview .syntax-entity.syntax-name.syntax-function,
+.preview .syntax-support.syntax-function {
   color: var(--hl-fn);
 }
 
 .preview .syntax-entity.syntax-name.syntax-class,
 .preview .syntax-entity.syntax-name.syntax-type,
-.preview .syntax-support.syntax-type {
+.preview .syntax-support.syntax-type,
+.preview .syntax-entity.syntax-other.syntax-inherited-class {
   color: var(--hl-type);
+}
+
+.preview .syntax-variable,
+.preview .syntax-variable.syntax-parameter {
+  color: var(--fg);
 }
 
 .preview .code-block {

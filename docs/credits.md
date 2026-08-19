@@ -37,6 +37,13 @@ Both are pinned in `ui/package.json` and loaded with a dynamic import only when 
 document contains a diagram or a formula. `ui/vendor/mermaid.esm.min.mjs` is the
 PLAN § 6 entry; Vite bundles it at build time. There is no CDN at runtime.
 
+## Syntax highlighting
+
+Fenced code blocks are highlighted in Rust with `syntect` (`regex-fancy`) and
+the extra dumped syntax set from [`two-face`](https://github.com/CosmicHorrorDev/two-face)
+(MIT/Apache-2.0), which adds Elixir and other languages missing from syntect's
+defaults. Token colors come from theme CSS variables (`--hl-*`).
+
 ## Icons
 
 The file tree uses original inline SVG (folder, Markdown document, generic
