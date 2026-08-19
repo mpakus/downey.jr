@@ -5,6 +5,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- GitHub Actions по тегу `v*` собирает один universal `.app`/DMG
+  (Apple Silicon + Intel через `lipo`, минимум macOS 12.0) и публикует
+  GitHub Release. Подпись Developer ID и нотаризация ещё впереди.
+
 ## [0.1.0] - 2026-08-19
 
 ### Fixed

@@ -14,6 +14,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
     "tauri": "tauri",
+    "tauri:build:universal": "tauri build --target universal-apple-darwin --bundles app,dmg",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
