@@ -9,6 +9,7 @@
     revealInFinder,
     type Project,
   } from '../lib/ipc'
+  import { listboxFocusIndex } from '../lib/list-focus'
   import { highlightQuery } from '../lib/text'
   import { visibleWindow } from '../lib/tree'
 
@@ -55,13 +56,23 @@
           })
           items = page.items
           total = page.total
-          focused = 0
+          focused = listboxFocusIndex(page.items.length, -1, focused)
         } catch (cause) {
           onerror(errorMessage(cause))
         }
       })()
     }, 30)
     return () => clearTimeout(handle)
+  })
+
+  $effect(() => {
+    if (!activeId) {
+      return
+    }
+    const activeIndex = items.findIndex((project) => project.id === activeId)
+    if (activeIndex >= 0) {
+      focused = activeIndex
+    }
   })
 
   const range = $derived(
@@ -215,7 +226,10 @@
               class:unavailable
               role="option"
               aria-selected={project.id === activeId}
-              onclick={() => onopen(project)}
+              onclick={() => {
+                focused = range.start + offset
+                onopen(project)
+              }}
               oncontextmenu={(event) => {
                 event.preventDefault()
                 menu = { x: event.clientX, y: event.clientY, project }
@@ -499,8 +513,11 @@
   }
 
   .row.active,
-  .row.focused,
   .row:hover {
+    background: var(--selection);
+  }
+
+  .list:focus-visible .row.focused {
     background: var(--selection);
   }
 
