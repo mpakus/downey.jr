@@ -3,6 +3,7 @@ Cargo.lock
 package-lock.json
 target/
 coverage/
+.cursor/
 crates/ps-render/tests/corpus/
 fuzz/artifacts/
 fuzz/corpus/

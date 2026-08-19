@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-19
+
 ### Fixed
 
 - В списке Projects подсветка больше не стоит на первой строке, пока открыт
@@ -182,6 +184,7 @@
   парсера закреплён минимизированным регрессионным тестом.
 - ADR-001…ADR-007 и каркас пользовательской документации mdBook.
 
-[Unreleased]: https://github.com/mpakus/downey.jr/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mpakus/downey.jr/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mpakus/downey.jr/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mpakus/downey.jr/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mpakus/downey.jr/releases/tag/v0.1.0
