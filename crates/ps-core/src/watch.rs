@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{Error, Result, fsops};
@@ -18,19 +19,31 @@ const DEBOUNCE: Duration = Duration::from_millis(150);
 const RAW_EVENT_QUEUE: usize = 1024;
 
 /// A coalesced project tree update.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum WatchUpdate {
     /// Relative paths affected during one debounce window.
     PathsChanged {
         /// Sorted, deduplicated project-relative paths.
+        #[ts(type = "Array<string>")]
         paths: Vec<PathBuf>,
     },
     /// Expanded directories to read again after events may have been lost.
     RescanExpanded {
         /// Only the currently expanded project-relative directories.
+        #[ts(type = "Array<string>")]
         paths: Vec<PathBuf>,
     },
+}
+
+/// Coalesced filesystem update emitted to the UI.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct FsChangedEvent {
+    /// Project that produced the update.
+    pub project_id: String,
+    /// Debounced paths or an expanded-directory rescan.
+    pub update: WatchUpdate,
 }
 
 /// A recursive project watcher that emits debounced updates.
@@ -269,6 +282,47 @@ mod tests {
             WatchUpdate::PathsChanged {
                 paths: vec![PathBuf::from("a.md"), PathBuf::from("b.md")]
             }
+        );
+    }
+
+    #[test]
+    fn quiet_windows_emit_nothing() {
+        assert!(finish_update(BTreeSet::new(), false, Vec::new()).is_none());
+    }
+
+    #[test]
+    fn collect_event_marks_backend_errors_and_rescans_as_overflow() {
+        let root = Path::new("/tmp/project");
+        let mut changed = BTreeSet::new();
+        let mut overflow = false;
+        collect_event(
+            root,
+            Err(notify::Error::generic("lost events")),
+            &mut changed,
+            &mut overflow,
+        );
+        assert!(overflow);
+        assert!(changed.is_empty());
+
+        overflow = false;
+        let mut event = notify::Event::new(notify::EventKind::Any);
+        event.attrs.set_flag(notify::event::Flag::Rescan);
+        collect_event(root, Ok(event), &mut changed, &mut overflow);
+        assert!(overflow);
+
+        overflow = false;
+        let event =
+            notify::Event::new(notify::EventKind::Any).add_path(root.join("notes/./../guide.md"));
+        collect_event(root, Ok(event), &mut changed, &mut overflow);
+        assert!(!overflow);
+        assert!(changed.contains(Path::new("notes/guide.md")));
+    }
+
+    #[test]
+    fn normalize_relative_skips_dot_components() {
+        assert_eq!(
+            normalize_relative(Path::new("a/./b/../c.md")),
+            Some(PathBuf::from("a/b/c.md"))
         );
     }
 }

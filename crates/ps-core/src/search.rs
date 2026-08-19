@@ -66,4 +66,11 @@ impl ProjectSearch {
             .map(|(_, project)| project.clone())
             .collect()
     }
+
+    /// Returns one page of ranked matches together with the unpaged total.
+    pub fn page(&self, query: &str, limit: usize, offset: usize) -> (Vec<Project>, usize) {
+        let ranked = self.search(query, usize::MAX);
+        let total = ranked.len();
+        (ranked.into_iter().skip(offset).take(limit).collect(), total)
+    }
 }

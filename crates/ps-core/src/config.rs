@@ -1,12 +1,13 @@
 //! Application configuration and validation.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::store::VersionedDocument;
 use crate::{Error, Result};
 
 /// Complete application configuration stored in `config.json`.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Config {
     /// On-disk schema version.
@@ -33,7 +34,12 @@ impl Config {
     /// Validates configuration ranges that affect rendering and layout.
     pub fn validate(&self) -> Result<()> {
         validate_range("font_size", self.typography.font_size, 10, 32)?;
-        validate_range("measure_ch", self.typography.measure_ch, 40, 120)
+        validate_range("measure_ch", self.typography.measure_ch, 40, 120)?;
+        if self.viewer.preview_font_size != 0 {
+            validate_range("preview_font_size", self.viewer.preview_font_size, 10, 32)?;
+        }
+        validate_hex_color("preview_bg", &self.viewer.preview_bg)?;
+        validate_hex_color("preview_fg", &self.viewer.preview_fg)
     }
 }
 
@@ -62,7 +68,7 @@ impl VersionedDocument for Config {
 }
 
 /// Theme configuration.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Appearance {
     /// Light theme identifier.
@@ -87,7 +93,7 @@ impl Default for Appearance {
 }
 
 /// Document typography configuration.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Typography {
     /// Body font family.
@@ -115,7 +121,7 @@ impl Default for Typography {
 }
 
 /// Initial document-view mode.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ViewMode {
     /// Rendered Markdown only.
@@ -128,7 +134,7 @@ pub enum ViewMode {
 }
 
 /// Preview behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Viewer {
     /// Mode used when opening a document.
@@ -141,6 +147,14 @@ pub struct Viewer {
     pub mermaid_enabled: bool,
     /// Whether mathematical notation is enabled.
     pub math_enabled: bool,
+    /// Preview/Split body font; empty uses `typography.body_font`.
+    pub preview_font: String,
+    /// Preview/Split font size in CSS pixels; `0` uses `typography.font_size`.
+    pub preview_font_size: u16,
+    /// Preview/Split background; empty uses the theme `--bg` token.
+    pub preview_bg: String,
+    /// Preview/Split text color; empty uses the theme `--fg` token.
+    pub preview_fg: String,
 }
 
 impl Default for Viewer {
@@ -151,12 +165,16 @@ impl Default for Viewer {
             allow_raw_html: false,
             mermaid_enabled: true,
             math_enabled: true,
+            preview_font: String::new(),
+            preview_font_size: 0,
+            preview_bg: String::new(),
+            preview_fg: String::new(),
         }
     }
 }
 
 /// Editor behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Editor {
     /// Idle time before autosave, in milliseconds.
@@ -199,7 +217,7 @@ impl Default for Editor {
 }
 
 /// Snapshot-history policy.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct History {
     /// Whether new snapshots are recorded.
@@ -233,7 +251,7 @@ impl Default for History {
 }
 
 /// File-tree and export behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Files {
     /// Whether hidden files are visible.
@@ -258,7 +276,7 @@ impl Default for Files {
 }
 
 /// Saved window geometry.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Window {
     /// Window width in logical pixels.
@@ -269,6 +287,12 @@ pub struct Window {
     pub sidebar_w: u32,
     /// File-tree width in logical pixels.
     pub tree_w: u32,
+    /// Table-of-contents width in logical pixels.
+    #[serde(default = "default_toc_w")]
+    pub toc_w: u32,
+    /// Whether the Dock icon stays visible after the window is hidden.
+    #[serde(default = "default_true")]
+    pub show_in_dock: bool,
 }
 
 impl Default for Window {
@@ -278,12 +302,14 @@ impl Default for Window {
             height: 780,
             sidebar_w: 220,
             tree_w: 260,
+            toc_w: 224,
+            show_in_dock: true,
         }
     }
 }
 
 /// Update-check behavior.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[serde(default)]
 pub struct Updates {
     /// Whether the optional update check runs at launch.
@@ -296,6 +322,28 @@ impl Default for Updates {
             check_on_launch: true,
         }
     }
+}
+
+fn default_toc_w() -> u32 {
+    224
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn validate_hex_color(field: &'static str, value: &str) -> Result<()> {
+    if value.is_empty() {
+        return Ok(());
+    }
+    let digits = value.strip_prefix('#').unwrap_or("");
+    if digits.len() == 6 && digits.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Ok(());
+    }
+    Err(Error::InvalidConfigFormat {
+        field,
+        expected: "#RRGGBB color",
+    })
 }
 
 fn validate_range(field: &'static str, value: u16, min: u16, max: u16) -> Result<()> {

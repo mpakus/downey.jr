@@ -11,6 +11,7 @@ export default tseslint.config(
       'target/**',
       'ui/coverage/**',
       'ui/dist/**',
+      'ui/src/lib/generated/**',
     ],
   },
   eslint.configs.recommended,
@@ -21,6 +22,14 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
         ...globals.node,
+      },
+    },
+  },
+  {
+    files: ['**/*.svelte'],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
       },
     },
   },

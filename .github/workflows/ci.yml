@@ -43,6 +43,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
       - run: npm run lint
 
   test:
@@ -64,6 +65,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: cargo test --workspace
+      - run: git diff --exit-code -- ui/src/lib/generated
+      - run: npm run check
       - run: npm run test
 
   build:
@@ -98,7 +101,10 @@ jobs:
       - run: npm ci
       - run: cargo install cargo-llvm-cov --locked
       - run: mkdir -p coverage/rust
-      - run: cargo llvm-cov --workspace --lcov --output-path coverage/rust/lcov.info
+      - run: cargo llvm-cov --workspace --no-report
+      - run: cargo llvm-cov report --json --output-path coverage/rust/cov.json
+      - run: cargo llvm-cov report --lcov --output-path coverage/rust/lcov.info
+      - run: python3 scripts/check-coverage.py coverage/rust/cov.json
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v6
         with:

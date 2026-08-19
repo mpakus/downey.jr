@@ -5,12 +5,17 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use unicode_normalization::UnicodeNormalization;
 
+use nucleo::pattern::{CaseMatching, Normalization, Pattern};
+use nucleo::{Config as NucleoConfig, Matcher, Utf32String};
+
+use crate::projects::is_markdown_path;
 use crate::{Error, Result, fsops};
 
 /// The filesystem kind represented by a tree node.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum TreeNodeKind {
     /// A directory that can be expanded lazily.
@@ -24,12 +29,13 @@ pub enum TreeNodeKind {
 }
 
 /// One immediate child of a project directory.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TreeNode {
     /// NFC-normalized display name.
     pub name: String,
     /// NFC-normalized path relative to the canonical project root.
+    #[ts(type = "string")]
     pub rel_path: PathBuf,
     /// Filesystem kind without following symbolic links.
     pub kind: TreeNodeKind,
@@ -84,15 +90,7 @@ pub fn read_dir(project_root: &Path, rel_path: &Path, show_hidden: bool) -> Resu
         let file_type = entry
             .file_type()
             .map_err(|source| Error::io("inspect a tree entry", entry.path(), source))?;
-        let kind = if file_type.is_dir() {
-            TreeNodeKind::Directory
-        } else if file_type.is_file() {
-            TreeNodeKind::File
-        } else if file_type.is_symlink() {
-            TreeNodeKind::Symlink
-        } else {
-            TreeNodeKind::Other
-        };
+        let kind = kind_from_file_type(file_type);
         nodes.push(SortableNode {
             folded_name: name.to_lowercase(),
             node: TreeNode {
@@ -110,6 +108,141 @@ pub fn read_dir(project_root: &Path, rel_path: &Path, show_hidden: bool) -> Resu
             .then_with(|| left.node.name.cmp(&right.node.name))
     });
     Ok(nodes.into_iter().map(|node| node.node).collect())
+}
+
+/// Builds a tree node for an existing absolute path inside a project.
+///
+/// Symbolic links are inspected without being followed. The last path component
+/// is NFC-normalized so the node matches [`read_dir`].
+pub fn node_at(project_root: &Path, absolute: &Path) -> Result<TreeNode> {
+    let canonical_root = project_root
+        .canonicalize()
+        .map_err(|source| Error::io("open the project directory", project_root, source))?;
+    let metadata = fs::symlink_metadata(absolute)
+        .map_err(|source| Error::io("inspect the path", absolute, source))?;
+    let file_name = absolute.file_name().ok_or_else(|| Error::UnsafePath {
+        path: absolute.to_path_buf(),
+        reason: "the path does not have a file name",
+    })?;
+    let parent = absolute.parent().ok_or_else(|| Error::UnsafePath {
+        path: absolute.to_path_buf(),
+        reason: "the path does not have a parent folder",
+    })?;
+    let canonical_parent = parent
+        .canonicalize()
+        .map_err(|source| Error::io("open the path's parent directory", parent, source))?;
+    let canonical = canonical_parent.join(file_name);
+    let rel = canonical
+        .strip_prefix(&canonical_root)
+        .map_err(|_| Error::PathOutsideProject {
+            path: canonical.clone(),
+        })?;
+    if rel.as_os_str().is_empty() {
+        return Err(Error::UnsafePath {
+            path: absolute.to_path_buf(),
+            reason: "the project root is not a tree item",
+        });
+    }
+    let name = file_name
+        .to_str()
+        .ok_or_else(|| Error::UnsafePath {
+            path: absolute.to_path_buf(),
+            reason: "file names must be valid Unicode",
+        })?
+        .nfc()
+        .collect::<String>();
+    Ok(TreeNode {
+        rel_path: rel.with_file_name(&name),
+        name,
+        kind: kind_from_file_type(metadata.file_type()),
+    })
+}
+
+const SEARCH_WALK_LIMIT: usize = 10_000;
+
+/// Fuzzy-searches Markdown files under a project by relative path.
+///
+/// An empty query returns files in tree order, capped at `limit`. Hidden files
+/// follow the same rule as [`read_dir`]. Symbolic links are not followed.
+pub fn search_markdown(
+    project_root: &Path,
+    query: &str,
+    show_hidden: bool,
+    limit: usize,
+) -> Result<Vec<TreeNode>> {
+    let mut files = Vec::new();
+    collect_markdown(
+        project_root,
+        Path::new(""),
+        show_hidden,
+        &mut files,
+        SEARCH_WALK_LIMIT,
+    )?;
+    let limit = limit.min(files.len());
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        files.truncate(limit);
+        return Ok(files);
+    }
+
+    let pattern = Pattern::parse(trimmed, CaseMatching::Smart, Normalization::Smart);
+    let mut matcher = Matcher::new(NucleoConfig::DEFAULT.match_paths());
+    let mut matches: Vec<_> = files
+        .into_iter()
+        .filter_map(|node| {
+            let haystack = Utf32String::from(node.rel_path.to_string_lossy().as_ref());
+            pattern
+                .score(haystack.slice(..), &mut matcher)
+                .map(|score| (score, node))
+        })
+        .collect();
+    matches.sort_unstable_by(|(left, left_node), (right, right_node)| {
+        right
+            .cmp(left)
+            .then_with(|| left_node.rel_path.cmp(&right_node.rel_path))
+    });
+    Ok(matches
+        .into_iter()
+        .take(limit)
+        .map(|(_, node)| node)
+        .collect())
+}
+
+fn collect_markdown(
+    project_root: &Path,
+    rel_path: &Path,
+    show_hidden: bool,
+    files: &mut Vec<TreeNode>,
+    walk_limit: usize,
+) -> Result<()> {
+    if files.len() >= walk_limit {
+        return Ok(());
+    }
+    for node in read_dir(project_root, rel_path, show_hidden)? {
+        if files.len() >= walk_limit {
+            break;
+        }
+        match node.kind {
+            TreeNodeKind::Directory => {
+                collect_markdown(project_root, &node.rel_path, show_hidden, files, walk_limit)?;
+            }
+            TreeNodeKind::File if is_markdown_path(&node.rel_path) => files.push(node),
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn kind_from_file_type(file_type: fs::FileType) -> TreeNodeKind {
+    if file_type.is_dir() {
+        TreeNodeKind::Directory
+    } else if file_type.is_file() {
+        TreeNodeKind::File
+    } else if file_type.is_symlink() {
+        TreeNodeKind::Symlink
+    } else {
+        TreeNodeKind::Other
+    }
 }
 
 fn directory_rank(kind: TreeNodeKind) -> u8 {
@@ -162,4 +295,32 @@ fn trim_leading_zeroes(value: &[u8]) -> &[u8] {
         .position(|byte| *byte != b'0')
         .unwrap_or(value.len().saturating_sub(1));
     &value[first_nonzero..]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collect_markdown_stops_at_the_walk_limit() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let root = temp.path().join("project");
+        fs::create_dir(&root).expect("project directory");
+        for index in 0..8 {
+            fs::write(root.join(format!("note-{index}.md")), b"").expect("markdown file");
+        }
+
+        let mut files = Vec::new();
+        collect_markdown(&root, Path::new(""), false, &mut files, 6).expect("walk");
+        assert_eq!(files.len(), 6);
+
+        let mut nested_files = Vec::new();
+        fs::create_dir(root.join("more")).expect("nested folder");
+        for index in 0..4 {
+            fs::write(root.join("more").join(format!("extra-{index}.md")), b"")
+                .expect("nested markdown");
+        }
+        collect_markdown(&root, Path::new(""), false, &mut nested_files, 6).expect("nested walk");
+        assert_eq!(nested_files.len(), 6);
+    }
 }

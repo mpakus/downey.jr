@@ -12,3 +12,4 @@ docs/**/*.md
 docs/book/
 ui/dist/
 ui/coverage/
+ui/src/lib/generated/

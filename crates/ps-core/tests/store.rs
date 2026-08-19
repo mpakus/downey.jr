@@ -72,3 +72,43 @@ fn preserves_corrupt_json_and_starts_with_defaults() {
     assert!(preserved_at.is_file());
     assert!(!path.exists());
 }
+
+#[test]
+fn rejects_a_newer_schema_and_flushes_on_close() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let path = temp.path().join("state.json");
+    fs::write(&path, br#"{"schema_version":99,"value":"future"}"#).expect("future schema");
+
+    let error = match JsonStore::<TestDocument>::open(&path) {
+        Ok(_) => panic!("unsupported schema should fail"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error,
+        Error::UnsupportedSchema {
+            found: 99,
+            supported: 1
+        }
+    ));
+
+    let missing = temp.path().join("fresh.json");
+    let mut store = JsonStore::<TestDocument>::open(&missing).expect("defaults");
+    assert!(!store.flush().expect("nothing dirty"));
+    assert_eq!(store.path(), missing.as_path());
+    store.update(|document| document.value = "written".into());
+    store.close().expect("flush on close");
+    let reopened = JsonStore::<TestDocument>::open(&missing).expect("reopened");
+    assert_eq!(reopened.value().value, "written");
+}
+
+#[test]
+fn flush_if_due_writes_after_the_debounce_window() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let path = temp.path().join("state.json");
+    let mut store = JsonStore::<TestDocument>::open(&path).expect("store");
+    store.update(|document| document.value = "later".into());
+    std::thread::sleep(std::time::Duration::from_millis(520));
+    assert!(store.flush_if_due().expect("due"));
+    let reopened = JsonStore::<TestDocument>::open(&path).expect("reopened");
+    assert_eq!(reopened.value().value, "later");
+}

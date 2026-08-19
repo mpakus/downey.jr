@@ -58,6 +58,12 @@ pub(crate) fn clean(html: &str) -> String {
         .add_tags(["input", "section"])
         .add_generic_attributes(["class", "id", "data-block", "data-src-line", "data-hash"])
         .add_tag_attributes("input", ["checked", "disabled", "type"])
+        .add_tag_attributes(
+            "img",
+            [
+                "src", "alt", "title", "width", "height", "loading", "decoding",
+            ],
+        )
         .add_url_schemes(["asset"]);
     sanitizer.clean(html).to_string()
 }

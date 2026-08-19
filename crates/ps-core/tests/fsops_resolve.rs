@@ -27,6 +27,19 @@ fn rejects_paths_that_can_escape_or_cannot_be_file_names() {
 
     let oversized = "a".repeat(256);
     assert!(fsops::resolve(&root, Path::new(&oversized)).is_err());
+
+    let project_root = fsops::resolve(&root, Path::new("")).expect("project root");
+    assert_eq!(project_root, root.canonicalize().expect("canonical"));
+}
+
+#[test]
+fn rejects_a_project_root_that_is_not_a_directory() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let file = temp.path().join("not-a-folder");
+    fs::write(&file, b"file").expect("file root");
+
+    let error = fsops::resolve(&file, Path::new("note.md")).expect_err("file is not a project");
+    assert!(error.to_string().contains("not a directory"));
 }
 
 #[test]

@@ -241,7 +241,7 @@
 | `fs_copy` / `fs_move`                                  | `{ project_id, from[], to_dir }`                       | `TreeNode[]`                             |
 | `fs_trash`                                             | `{ project_id, rel_paths[] }`                          | `()`                                     |
 | `doc_open`                                             | `{ project_id, rel_path }`                             | `DocumentMeta` + чанки событиями         |
-| `doc_source`                                           | `{ project_id, rel_path }`                             | `{ text, eol, bom, encoding, writable }` |
+| `doc_source`                                           | `{ project_id, rel_path }`                             | `{ text, eol, bom, trailingNewline, encoding, writable }` |
 | **`doc_save`**                                         | `{ project_id, rel_path, text, base_hash }`            | `{ hash, mtime }` или `Conflict`         |
 | **`doc_stat`**                                         | `{ project_id, rel_path }`                             | `{ hash, mtime, size, writable }`        |
 | **`render_incremental`**                               | `{ doc_id, text, changed_range }`                      | `{ patches: BlockPatch[] }`              |
@@ -254,6 +254,8 @@
 | **`history_stats` / `history_forget_project`**         | …                                                      | `Stats` / `()`                           |
 | **`history_export_git`**                               | `{ project_id, dest }`                                 | `{ job_id }`                             |
 | `export_start` / `export_cancel`                       | …                                                      | `{ job_id }` / `()`                      |
+
+Имена аргументов команд — snake_case (`#[tauri::command(rename_all = "snake_case")]`). Tauri 2 по умолчанию десериализует ключи как camelCase.
 
 **События (Rust → UI):** `doc://chunk`, `doc://done`, **`doc://external_change`**, **`doc://save_failed`**, `fs://changed`, **`history://snapshot`**, **`history://gc_done`**, `export://progress`, `export://done`, `export://error`.
 
@@ -307,7 +309,11 @@
     "show_toc": true,
     "allow_raw_html": false,
     "mermaid_enabled": true,
-    "math_enabled": true
+    "math_enabled": true,
+    "preview_font": "",
+    "preview_font_size": 0,
+    "preview_bg": "",
+    "preview_fg": ""
   },
   "editor": {
     "autosave_ms": 800,
@@ -335,7 +341,7 @@
     "export_ignore": [".git", "node_modules", ".DS_Store", "*.zip"],
     "confirm_delete": true
   },
-  "window": { "width": 1180, "height": 780, "sidebar_w": 220, "tree_w": 260 },
+  "window": { "width": 1180, "height": 780, "sidebar_w": 220, "tree_w": 260, "toc_w": 224, "show_in_dock": true },
   "updates": { "check_on_launch": true }
 }
 ```
@@ -671,7 +677,7 @@ Git-бэкенд отложен в v1.1 сознательно. Идея пис�
 
 Ориентир — Bear: три колонки, воздух, типографика как главный элемент, минимум хрома. **Собственная реализация**: не копируем ассеты, иконки, шрифты и точные цвета Bear.
 
-- **Окно:** прозрачный титлбар (`titleBarStyle: Overlay`, `hiddenTitle: true`), traffic lights вписаны в сайдбар, боковая панель с вибрантностью (`window-vibrancy`, материал `Sidebar`).
+- **Окно:** прозрачный титлбар (`titleBarStyle: Overlay`, `hiddenTitle: true`, `app.macOSPrivateApi: true`), traffic lights вписаны в сайдбар, боковая панель с вибрантностью (`window-vibrancy`, материал `Sidebar`).
 - **Сетка:** Проекты 220 px · Дерево 260 px · Контент — остальное. Панели схлопываются (⌘1 / ⌘2), ширины сохраняются.
 - **Редактор и превью используют одну типографику.** Переключение ⌘E не должно ощущаться как переход в другое приложение: та же гарнитура, тот же кегль, та же ширина колонки. Разница только в том, что разметка видна как текст.
 - **Типографика:** ширина текста 68–76 ch, `line-height` 1.65, заголовки на модульной шкале 1.25.

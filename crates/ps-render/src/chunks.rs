@@ -58,6 +58,31 @@ where
     }
 }
 
+/// Splits concatenated chunk HTML into one fragment per `<section class="chunk">`.
+///
+/// ```
+/// use ps_render::html_chunks;
+///
+/// let html = "<section class=\"chunk\">a</section>\n<section class=\"chunk\">b</section>\n";
+/// assert_eq!(html_chunks(html).len(), 2);
+/// ```
+#[must_use]
+pub fn html_chunks(html: &str) -> Vec<&str> {
+    if html.is_empty() {
+        return Vec::new();
+    }
+
+    let mut chunks = Vec::new();
+    let mut start = 0;
+    while let Some(offset) = html[start..].find(SECTION_SEPARATOR) {
+        let end = start + offset + CLOSE_SECTION.len();
+        chunks.push(&html[start..end]);
+        start = end;
+    }
+    chunks.push(&html[start..]);
+    chunks
+}
+
 fn event_bytes(event: &Event<'_>) -> usize {
     match event {
         Event::Start(_) | Event::End(_) => 8,

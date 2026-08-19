@@ -81,6 +81,32 @@ fn conflict_suggestions_remain_valid_at_the_name_length_limit() {
 }
 
 #[test]
+fn create_untitled_uses_the_next_free_name() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fsops::mkdir(&root, Path::new("inbox")).expect("inbox");
+
+    let first = fsops::create_untitled(&root, Path::new("inbox"), fsops::UntitledKind::File)
+        .expect("first untitled file");
+    assert_eq!(
+        first.file_name(),
+        Some(Path::new("untitled.md").as_os_str())
+    );
+    let second = fsops::create_untitled(&root, Path::new("inbox"), fsops::UntitledKind::File)
+        .expect("second untitled file");
+    assert_eq!(
+        second.file_name(),
+        Some(Path::new("untitled 2.md").as_os_str())
+    );
+
+    let folder = fsops::create_untitled(&root, Path::new(""), fsops::UntitledKind::Folder)
+        .expect("untitled folder");
+    assert_eq!(folder.file_name(), Some(Path::new("untitled").as_os_str()));
+    assert!(fsops::create_untitled(&root, Path::new(".."), fsops::UntitledKind::File).is_err());
+}
+
+#[test]
 fn rename_is_atomic_within_the_project() {
     let temp = tempfile::tempdir().expect("temporary directory");
     let root = temp.path().join("project");
@@ -119,4 +145,36 @@ fn rename_conflict_never_replaces_either_file() {
     ));
     assert_eq!(fs::read(root.join("draft.md")).expect("draft"), b"Draft");
     assert_eq!(fs::read(root.join("final.md")).expect("final"), b"Final");
+}
+
+#[test]
+fn rename_of_the_same_path_is_a_no_op() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir(&root).expect("project directory");
+    fs::write(root.join("draft.md"), b"Same").expect("draft");
+
+    let renamed = fsops::rename(&root, Path::new("draft.md"), Path::new("draft.md"))
+        .expect("same-path rename");
+
+    assert_eq!(renamed.file_name(), Some(Path::new("draft.md").as_os_str()));
+    assert_eq!(fs::read(root.join("draft.md")).expect("unchanged"), b"Same");
+}
+
+#[test]
+fn rename_into_another_folder_syncs_both_parents() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path().join("project");
+    fs::create_dir_all(root.join("inbox")).expect("inbox");
+    fs::write(root.join("draft.md"), b"Moved").expect("draft");
+
+    let renamed = fsops::rename(&root, Path::new("draft.md"), Path::new("inbox/final.md"))
+        .expect("cross-folder rename");
+
+    assert_eq!(renamed.file_name(), Some(Path::new("final.md").as_os_str()));
+    assert!(!root.join("draft.md").exists());
+    assert_eq!(
+        fs::read(root.join("inbox/final.md")).expect("moved"),
+        b"Moved"
+    );
 }

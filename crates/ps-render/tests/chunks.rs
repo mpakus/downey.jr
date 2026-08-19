@@ -35,6 +35,21 @@ fn never_splits_one_oversized_top_level_block() {
 }
 
 #[test]
+fn html_chunks_round_trip_the_rendered_document() {
+    let first = "a".repeat(40 * 1024);
+    let second = "b".repeat(30 * 1024);
+    let third = "c".repeat(1024);
+    let html = render(&format!("{first}\n\n{second}\n\n{third}\n"));
+    let chunks = ps_render::html_chunks(&html);
+
+    assert_eq!(chunks.len(), 2);
+    assert_eq!(chunks.concat(), html);
+    assert!(chunks.iter().all(|chunk| {
+        chunk.starts_with("<section class=\"chunk\">") && chunk.ends_with("</section>\n")
+    }));
+}
+
+#[test]
 fn chunks_blocks_that_have_no_text_payload() {
     let markdown = "![](image.png)\n\n".repeat(3_000);
     let html = render(&markdown);
