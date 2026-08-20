@@ -64,12 +64,12 @@ def section_for(changelog: str, version: str) -> str:
     return f"{title}\n\n{body}\n"
 
 
-UNSIGNED_FOOTER = """
+SIGNED_FOOTER = """
 ---
 
 Universal macOS build (Apple Silicon `arm64` + Intel `x86_64`), minimum macOS 12.0.
 
-**Unsigned test build.** Gatekeeper will warn until Developer ID signing and notarization. First launch: Right-click → Open, or `xattr -cr /Applications/1537paperstreet.app` after copying.
+Signed with Developer ID and notarized by Apple. The notarization ticket is stapled to both the app and DMG for offline Gatekeeper verification.
 """
 
 
@@ -85,8 +85,8 @@ def self_test() -> None:
         pass
     else:
         raise AssertionError("missing version should fail")
-    notes = section_for(SAMPLE, "0.1.0") + UNSIGNED_FOOTER
-    assert "Unsigned test build" in notes
+    notes = section_for(SAMPLE, "0.1.0") + SIGNED_FOOTER
+    assert "notarized by Apple" in notes
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -108,9 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Run built-in assertions and exit",
     )
     parser.add_argument(
-        "--unsigned-footer",
+        "--signed-footer",
         action="store_true",
-        help="Append the Gatekeeper warning used on GitHub Releases",
+        help="Append signing details used on GitHub Releases",
     )
     args = parser.parse_args(argv)
 
@@ -123,8 +123,8 @@ def main(argv: list[str] | None = None) -> int:
 
     text = args.changelog.read_text(encoding="utf-8")
     sys.stdout.write(section_for(text, args.version))
-    if args.unsigned_footer:
-        sys.stdout.write(UNSIGNED_FOOTER)
+    if args.signed_footer:
+        sys.stdout.write(SIGNED_FOOTER)
     return 0
 
 

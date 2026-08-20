@@ -4,13 +4,16 @@ Minimum macOS version is 12.0 (Monterey), Apple Silicon or Intel.
 
 **From a GitHub Release** (the usual way to try the app): download the
 universal DMG from [Releases](https://github.com/mpakus/1537paperstreet/releases).
-Builds are not Developer ID–signed yet, so Gatekeeper will block a normal
-double-click. First launch: Right-click → Open, or after copying to
-Applications:
+Release 0.3.0 and earlier are not Developer ID–signed, so Gatekeeper will block
+a normal double-click. First launch for one of those versions: Right-click →
+Open, or after copying to Applications:
 
 ```sh
 xattr -cr /Applications/1537paperstreet.app
 ```
+
+New releases are published only after Developer ID signing, Apple
+notarization, and Gatekeeper verification succeed for both the app and DMG.
 
 **From source** (development):
 
@@ -34,5 +37,4 @@ with the logo, version, and a link to [aomega.co](https://aomega.co).
 Check for Updates in that sheet and File → Check for Updates… ask GitHub
 Releases and open the download page if a newer version exists.
 
-Homebrew cask and in-app install of updates will arrive with the first signed
-build.
+Homebrew cask and in-app install of updates are not available yet.

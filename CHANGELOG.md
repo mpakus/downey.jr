@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- macOS tag releases now require Developer ID credentials, hardened-runtime
+  signing, Apple notarization, stapled tickets, and Gatekeeper checks for both
+  the universal app and DMG. The workflow refuses to publish unsigned builds.
+
 ## [0.3.0] - 2026-08-19
 
 ### Added

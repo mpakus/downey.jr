@@ -4,6 +4,15 @@ Items CI does not cover. Run on a clean machine or a guest macOS 12+ account,
 both architectures if you ship a universal binary. Check only what you
 actually verified on this build.
 
+Distribution:
+
+1. Download the published DMG through a browser on a clean Mac. Open the DMG,
+   copy the app to Applications, and launch it by double-clicking. Gatekeeper
+   must not show an unidentified-developer or malware-verification warning.
+2. With the downloaded artifacts, `codesign --verify --deep --strict`,
+   `xcrun stapler validate`, and `spctl --assess` must accept both the app and
+   DMG. Do not substitute artifacts from the Actions workspace.
+
 Reader (current product):
 
 1. First launch: the window appears without a flash of the wrong geometry,

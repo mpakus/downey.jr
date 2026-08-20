@@ -47,13 +47,15 @@ and wikis that already live next to your code.
 macOS 12 (Monterey) or newer, Apple Silicon or Intel. GitHub Releases ship a
 **universal** `.app` and DMG.
 
-Current builds are **unsigned**. Gatekeeper will warn until Developer ID
-signing lands. First launch: Right-click → Open, or after copying to
-Applications:
+Release 0.3.0 and earlier are **unsigned**. Gatekeeper will warn for those
+downloads. First launch: Right-click → Open, or after copying to Applications:
 
 ```sh
 xattr -cr /Applications/1537paperstreet.app
 ```
+
+New releases are published only after Developer ID signing, Apple
+notarization, and Gatekeeper verification succeed.
 
 Closing the red traffic light hides the window; the menu-bar icon stays.
 Click it to show the window again. Quit from that menu or ⌘Q.
@@ -105,5 +107,7 @@ How we work: [`CONTRIBUTING.md`](CONTRIBUTING.md). After changing IPC types:
 UPDATE_TS_BINDINGS=1 cargo test -p ps-core --test typescript
 ```
 
-A `v*` tag builds the universal binary and publishes a GitHub Release. Signing
-and notarization are not in that workflow yet.
+A `v*` tag builds the universal binary and publishes a GitHub Release only
+after the app and DMG pass Developer ID signature, notarization-ticket, and
+Gatekeeper verification. Required repository secrets are documented in
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
