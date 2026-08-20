@@ -29,7 +29,14 @@ env:
 jobs:
   release-macos:
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 180
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
     steps:
       - uses: actions/checkout@v6
 
@@ -58,13 +65,59 @@ jobs:
       - name: SDK for x86_64 cross-compile
         run: echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> "$GITHUB_ENV"
 
-      - name: Build universal .app and DMG
+      - name: Prepare Apple signing credentials
+        run: |
+          set -euo pipefail
+          : "${APPLE_CERTIFICATE:?set repository secret MACOS_CERTIFICATE_BASE64}"
+          : "${APPLE_CERTIFICATE_PASSWORD:?set repository secret MACOS_CERTIFICATE_PASSWORD}"
+          : "${APPLE_SIGNING_IDENTITY:?set repository secret DEVELOPER_ID_APPLICATION}"
+          : "${APPLE_API_KEY_BASE64:?set repository secret APPLE_API_KEY_BASE64}"
+          : "${APPLE_API_KEY:?set repository secret APPLE_API_KEY_ID}"
+          : "${APPLE_API_ISSUER:?set repository secret APPLE_API_ISSUER}"
+          api_key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s' "$APPLE_API_KEY_BASE64" | base64 --decode > "$api_key_path"
+          chmod 600 "$api_key_path"
+          echo "APPLE_API_KEY_PATH=$api_key_path" >> "$GITHUB_ENV"
+
+      - name: Build, sign, and notarize universal .app and DMG
         run: npm run tauri -- build --target universal-apple-darwin --bundles app,dmg
 
-      - name: Verify fat binary and macOS 12+
+      - name: Notarize and staple DMG
         run: |
-          bin="target/universal-apple-darwin/release/bundle/macos/1537paperstreet.app/Contents/MacOS/1537paperstreet"
+          set -euo pipefail
+          dmg=(target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          if [[ "${#dmg[@]}" -ne 1 || ! -f "${dmg[0]}" ]]; then
+            echo "expected exactly one DMG" >&2
+            exit 1
+          fi
+          notary_ok=0
+          for attempt in 1 2 3 4 5; do
+            echo "notarytool submit --wait attempt ${attempt}"
+            if xcrun notarytool submit "${dmg[0]}" \
+              --key "$APPLE_API_KEY_PATH" \
+              --key-id "$APPLE_API_KEY" \
+              --issuer "$APPLE_API_ISSUER" \
+              --wait \
+              --timeout 1800; then
+              notary_ok=1
+              break
+            fi
+            echo "notarytool wait failed; retrying in 20 seconds..." >&2
+            sleep 20
+          done
+          if [[ "$notary_ok" -ne 1 ]]; then
+            echo "DMG notarization did not finish after five attempts" >&2
+            exit 1
+          fi
+          xcrun stapler staple "${dmg[0]}"
+
+      - name: Verify universal, signed, notarized distribution
+        run: |
+          app="target/universal-apple-darwin/release/bundle/macos/1537paperstreet.app"
+          bin="$app/Contents/MacOS/1537paperstreet"
+          dmg=(target/universal-apple-darwin/release/bundle/dmg/*.dmg)
           bash scripts/verify-universal.sh "$bin"
+          bash scripts/verify-macos-distribution.sh "$app" "${dmg[0]}"
 
       - name: Collect artifacts
         id: artifacts
@@ -115,7 +168,7 @@ jobs:
             echo "tag $TAG does not match package.json version $pkg" >&2
             exit 1
           fi
-          python3 scripts/changelog-section.py "$VERSION" --unsigned-footer > notes.md
+          python3 scripts/changelog-section.py "$VERSION" --signed-footer > notes.md
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "1537paperstreet $VERSION" --notes-file notes.md
             gh release upload "$TAG" "$DMG" "$ZIP" --clobber
@@ -125,4 +178,8 @@ jobs:
               --notes-file notes.md \
               "$DMG" \
               "$ZIP"
+
+      - name: Remove App Store Connect API key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
           fi

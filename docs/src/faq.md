@@ -12,9 +12,9 @@ on, check the fence syntax; errors show under the source.
 **Formulas don’t render.** Settings → mathematics (KaTeX). You need `$...$` /
 `$$...$$` in the Markdown, as in the renderer corpus.
 
-**The app won’t open from the DMG.** Test build without notarization. From
-source: `cargo tauri dev`. Or Right-click → Open / `xattr -cr` as in
-[Install](install.md).
+**Release 0.3.0 won’t open from the DMG.** That release was not notarized. Use
+Right-click → Open / `xattr -cr` as in [Install](install.md), or download a
+newer signed release. From source, use `cargo tauri dev`.
 
 **I closed the window and the menu-bar icon is still there?** That is
 intentional. Click the icon to show the window; Quit in its menu or ⌘Q

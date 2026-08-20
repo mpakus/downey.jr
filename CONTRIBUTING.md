@@ -25,4 +25,17 @@ asks. Do not add them “while you’re here.”
 
 Release: tag `vX.Y.Z` (same version as `package.json`) runs
 `.github/workflows/release.yml` — universal `.app`/DMG on `macos-14` and a
-GitHub Release. Signing and notarization are not in that workflow yet.
+GitHub Release. The workflow refuses to publish an unsigned build. It needs
+the same Developer ID certificate and App Store Connect API key used by
+GitRonimo in these repository secrets:
+
+- `DEVELOPER_ID_APPLICATION`
+- `MACOS_CERTIFICATE_BASE64`
+- `MACOS_CERTIFICATE_PASSWORD`
+- `APPLE_API_KEY_BASE64`
+- `APPLE_API_KEY_ID`
+- `APPLE_API_ISSUER`
+
+Tauri signs the universal app with hardened runtime and notarizes it; the
+workflow also notarizes and staples the final DMG. Both artifacts must pass
+`codesign`, `stapler`, and Gatekeeper verification before publication.
