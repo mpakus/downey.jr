@@ -1,20 +1,19 @@
-# Расположение файлов
+# Where files live
 
-Служебные данные лежат в `~/.1537paperstreet/`, не рядом с вашими заметками.
+App data lives in `~/.1537paperstreet/`, not next to your notes.
 
-| Файл | Что внутри |
+| File | Contents |
 | --- | --- |
-| `config.json` | Тема, шрифт, цвета превью, Dock, флаги Mermaid/KaTeX, геометрия окна |
-| `projects.json` | Список проектов (имя и путь), без содержимого файлов |
-| `ui-state.json` | Раскрытые папки, ширины панелей |
-| `themes/` | Ваши JSON-темы |
-| `cache/mermaid/` | Кэш SVG диаграмм |
-| `logs/app.log` | Журнал с ротацией; без текста документов |
+| `config.json` | Theme, font, preview colors, Dock, Mermaid/KaTeX flags, window geometry |
+| `projects.json` | Project list (name and path), not file contents |
+| `ui-state.json` | Expanded folders, pane widths |
+| `themes/` | Your JSON themes |
+| `cache/mermaid/` | Cached diagram SVG |
+| `logs/app.log` | Rotating log; no document text |
 
-Если приложение странно себя ведёт: закройте его, переименуйте
-`config.json` в `config.json.bak` и запустите снова — подтянутся значения
-по умолчанию. Реестр проектов можно вернуть из `projects.json.bak`, если
-он появился после неудачной записи.
+If the app misbehaves: quit, rename `config.json` to `config.json.bak`, and
+launch again — defaults load. The project registry can be restored from
+`projects.json.bak` if one appeared after a failed write.
 
-Документы проектов приложение не переносит. Удаление проекта из списка
-не удаляет папку на диске.
+The app does not move project documents. Removing a project from the list
+does not delete the folder on disk.

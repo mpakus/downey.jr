@@ -1,28 +1,29 @@
-# Горячие клавиши
+# Keyboard shortcuts
 
-Работающие в ридере:
+Working in the reader:
 
-| Клавиши | Действие |
+| Keys | Action |
 | --- | --- |
-| ⌘N / ⌘⇧N | Новый файл / новая папка |
+| ⌘N / ⌘⇧N | New file / new folder |
 | ⌘O | Open File… |
-| ⌘P | Быстрое открытие файла |
-| ⌘⇧P | Переключение проекта |
-| ⌘F | Найти в превью |
-| ⌘1 / ⌘2 | Скрыть проекты / дерево |
-| ⌘E | Превью / редактор |
+| ⌘P | Quick-open a file |
+| ⌘⇧P | Switch project |
+| ⌘F | Find in preview |
+| ⌘1 / ⌘2 | Hide projects / tree |
+| ⌘E | Preview / editor |
 | ⌘⇧E | Split |
-| Escape | Выйти из Full size превью |
-| ⌘S | Сохранить |
-| ⌘, | Настройки |
-| ⌘⌥E | Экспорт открытого документа в PDF |
-| ⌘⌥T | Светлая / тёмная тема |
-| ⌘+ / ⌘− / ⌘0 | Шрифт больше / меньше / сброс |
-| ⌘⇧R | Показать в Finder |
-| ⌘⇧O | Открыть во внешнем редакторе |
-| ⌘⌫ | В Корзину |
+| Escape | Leave full-size preview |
+| ⌘S | Save |
+| ⌘, | Settings |
+| ⌘⌥E | Export the open document to PDF |
+| ⌘⌥T | Light / dark theme |
+| ⌘+ / ⌘− / ⌘0 | Larger / smaller / reset type |
+| ⌘⇧R | Reveal in Finder |
+| ⌘⇧O | Open in External Editor |
+| ⌘⌫ | Move to Trash |
 
-Те же действия видны в панели под титлбаром: Preview / Edit / Split, Save,
-Export. В Preview и Split справа — A− / A+ (кегль) и − / % / + (зум
-превью). В углу превью — Full size. Форматирование (⌘B / ⌘I / ⌘K) появляется в режиме Edit. Настройки —
-File → Settings… или ⌘,. Замена (⌘⌥F) ещё впереди.
+The same actions appear in the bar under the title: Preview / Edit / Split,
+Save, Export. In Preview and Split on the right — A− / A+ (type size) and
+− / % / + (preview zoom). Full size sits in the preview corner. Formatting
+(⌘B / ⌘I / ⌘K) appears in Edit. Settings — File → Settings… or ⌘,.
+Find and replace (⌘⌥F) is still ahead.

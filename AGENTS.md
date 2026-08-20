@@ -113,7 +113,9 @@
 ## 7. Стиль
 
 - Код, комментарии, имена, коммиты, ADR — **на английском**.
-- `PLAN.md`, `CHECKLIST.md`, `AGENTS.md`, пользовательская документация — **на русском**; интерфейс приложения — на английском (локализация в бэклоге).
+- `PLAN.md`, `CHECKLIST.md`, `AGENTS.md` — **Russian**; README, CONTRIBUTING,
+  CHANGELOG, and the mdBook user guide (`docs/src/`) — **English**. The app UI
+  is English (localization is backlog).
 - Коммиты — Conventional Commits: `feat(core): add atomic json store`.
 - Имена: `snake_case` в Rust, `camelCase` в TS, `kebab-case` для файлов CSS и Svelte-компонентов в `PascalCase`.
 
@@ -147,10 +149,10 @@
 
 ## 10. Карта кода
 
-- `ps-core`: `config`, `projects`, `fsops`, `tree`, `watch`, `docio`, `log`, `themes`, `mermaid_cache`, `ui_state`, `search`, `store`, `paths`
+- `ps-core`: `config`, `projects`, `fsops`, `tree`, `watch`, `docio`, `log`, `themes`, `mermaid_cache`, `ui_state`, `search`, `store`, `paths`, `updates`
 - `ps-render`: Markdown → HTML, шаблоны Mermaid с BLAKE3, span'ы KaTeX, `asset://`
 - `ps-app`: тонкие IPC-команды, overlay-окно, нативное меню, `asset://`, `WatchHub`, `save_user_file`
-- `ui`: панели Svelte 5 (`Projects`, `Tree`, `Preview`, `Settings`, `QuickOpen`, `QuickSwitch`, `FindBar`, `Conflict`)
+- `ui`: панели Svelte 5 (`Projects`, `Tree`, `Preview`, `Settings`, `QuickOpen`, `QuickSwitch`, `FindBar`, `Conflict`, `About`)
 - Темы: `crates/ps-core/themes/*.json` плюс `~/.1537paperstreet/themes/`
 - Кэш диаграмм: `~/.1537paperstreet/cache/mermaid/`
 - Состояние UI: `ui-state.json` (раскрытые узлы, ширины панелей)

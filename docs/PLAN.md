@@ -254,6 +254,8 @@
 | **`history_stats` / `history_forget_project`**         | …                                                      | `Stats` / `()`                           |
 | **`history_export_git`**                               | `{ project_id, dest }`                                 | `{ job_id }`                             |
 | `export_start` / `export_cancel`                       | …                                                      | `{ job_id }` / `()`                      |
+| `open_url`                                             | `{ url }`                                              | `()`                                     |
+| `updates_check`                                        | —                                                      | `UpdateCheck`                            |
 
 Имена аргументов команд — snake_case (`#[tauri::command(rename_all = "snake_case")]`). Tauri 2 по умолчанию десериализует ключи как camelCase.
 
@@ -860,7 +862,10 @@ strip = "symbols"
 - **Подпись:** Developer ID Application, hardened runtime, минимальные entitlements.
 - **Нотаризация:** `xcrun notarytool submit --wait` → `xcrun stapler staple`.
 - **DMG:** фон, симлинк на `/Applications`, размер ≤ 22 MB.
-- **Обновления:** `tauri-plugin-updater` с подписью Ed25519, выключаемо. Плюс Homebrew cask.
+- **Обновления:** пока без подписи — File → Check for Updates… и кнопка в About
+  сравнивают текущую версию с GitHub Releases и открывают страницу загрузки.
+  `tauri-plugin-updater` с Ed25519 (T-155) появится после Developer ID.
+  Плюс Homebrew cask.
 - **CI:** GitHub Actions, раннеры `macos-14` (arm64). Джобы: `fmt` → `clippy -D warnings` → `test` → `coverage` → `bench-regression` → `build-universal` → (по тегу) `sign-notarize-release`.
 - **Секреты:** сертификат, пароли, ключ обновлений — только в GitHub Secrets.
 

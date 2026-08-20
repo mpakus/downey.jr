@@ -172,6 +172,14 @@ pub enum Error {
         #[source]
         source: time::error::Format,
     },
+
+    /// GitHub did not return a recognizable release payload.
+    #[error("GitHub did not return a release.")]
+    InvalidUpdateRelease,
+
+    /// The latest GitHub Release tag is not a semantic version.
+    #[error("The latest GitHub release tag is not a version number.")]
+    InvalidUpdateVersion,
 }
 
 impl Error {
@@ -270,6 +278,15 @@ mod tests {
             }
             .to_string()
             .contains("changed on disk")
+        );
+        assert_eq!(
+            Error::InvalidUpdateRelease.to_string(),
+            "GitHub did not return a release."
+        );
+        assert!(
+            Error::InvalidUpdateVersion
+                .to_string()
+                .contains("version number")
         );
         let json = Error::json(
             "decode",

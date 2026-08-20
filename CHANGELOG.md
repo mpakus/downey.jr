@@ -1,188 +1,200 @@
-# История изменений
+# Changelog
 
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
-версии следуют [Semantic Versioning](https://semver.org/lang/ru/).
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Added
+
+- File → Check for Updates… (same item in the application menu) asks GitHub
+  Releases without downloading an installer. About has Check for Updates and
+  Open Download when a newer version exists. Signed in-place install is still
+  T-155.
+- Open Folder…, File → Open Folder… / Open File…, and dropping a folder onto
+  the window add that folder to Projects (the same path is not listed twice).
+
+### Fixed
+
+- After Open Folder… the Projects list reloads so the new folder appears
+  without restarting the app.
 
 ## [0.2.1] - 2026-08-19
 
 ### Fixed
 
-- В списке Projects подсветка больше не стоит на первой строке, пока открыт
-  другой проект: выбран только активный проект, фокус клавиатуры виден при
-  навигации стрелками.
-- В Split колонка редактора тянется за разделитель; ширина пишется в
-  `window.editor_w`. Дробные пиксели округляются, верхний предел — ширина
-  рабочей области минус превью.
+- The Projects list no longer highlights the first row while another project
+  is open: only the active project is selected; keyboard focus shows when you
+  move with the arrow keys.
+- In Split the editor column follows the divider; width is stored as
+  `window.editor_w`. Fractional pixels are rounded; the cap is workspace width
+  minus preview.
 
 ## [0.2.0] - 2026-08-19
 
 ### Added
 
-- Превью понимает GitHub Flavored Markdown шире: чек-листы, alerts
-  (`> [!NOTE]`), definition lists, YAML front matter и wiki-ссылки
-  `[[Note]]` / `[[Note|label]]`. Подсветка fenced-блоков (Rust, Python,
-  Ruby, Elixir, YAML, JS/TS и др.) через `syntect`. В редакторе — кнопки
-  Task и Wiki.
-- В правом верхнем углу превью — Full size: чтение на всё окно (под
-  титлбаром); повторный клик или Escape возвращают обычный вид.
-- GitHub Actions по тегу `v*` собирает один universal `.app`/DMG
-  (Apple Silicon + Intel через `lipo`, минимум macOS 12.0) и публикует
-  GitHub Release. Подпись Developer ID и нотаризация ещё впереди.
+- Preview understands more GitHub Flavored Markdown: task lists, alerts
+  (`> [!NOTE]`), definition lists, YAML front matter, and wiki links
+  `[[Note]]` / `[[Note|label]]`. Fenced blocks (Rust, Python, Ruby, Elixir,
+  YAML, JS/TS, and others) are highlighted with `syntect`. The editor has Task
+  and Wiki buttons.
+- Top-right of the preview — Full size: reading fills the window (under the
+  title bar); click again or Escape to return.
+- GitHub Actions on a `v*` tag builds one universal `.app`/DMG (Apple Silicon
+  - Intel via `lipo`, macOS 12.0+) and publishes a GitHub Release. Developer
+    ID signing and notarization are still ahead.
 
 ## [0.1.0] - 2026-08-19
 
 ### Fixed
 
-- Диаграммы Mermaid рисуются в превью: исходник читается из
-  `template.content` (в WKWebView `textContent` у `<template>` пустой), сбой
-  кэша не оставляет серый прямоугольник.
-- Иконка в Dock — из `icon.png`, а не буква P из каркаса Tauri. Dev на macOS
-  берёт `icons/icon.icns` / `icons/icon.png`, сгенерированные из корневого
-  `icon.png`.
-- Settings открываются поверх окна (File → Settings…, ⌘,). Страница больше
-  не теряется за панелями и не падает на `structuredClone` прокси `$state`.
-- В Settings: оставить или убрать иконку в Dock после скрытия окна
-  (`window.show_in_dock`); шрифт, кегль и цвета превью/Split
-  (`viewer.preview_*`) пишутся в `config.json`.
-- Export и ⌘⌥E сохраняют открытый документ в PDF через нативный диалог Save.
-- Окно снова перетаскивается за верхнюю полосу: непрозрачный overlay-титлбар
-  с `data-tauri-drag-region` и `startDragging`.
-- Заголовок окна: `1537paperstreet - {путь к открытому файлу}`.
-- Кнопка Image в панели редактора вставляет `![]()`.
-- Дерево больше не показывает «This folder is empty» для папки с файлами:
-  IPC-команды принимают аргументы в snake_case, как в PLAN § 3.3 (Tauri 2
-  по умолчанию ждёт camelCase).
-- Прозрачное окно больше не печатает предупреждение Tauri про
-  `macos-private-api`: включены `app.macOSPrivateApi` и соответствующий
-  Cargo feature; сбой вибрантности пишется в `logs/app.log`.
+- Mermaid diagrams draw in the preview: source is read from
+  `template.content` (`textContent` on `<template>` is empty in WKWebView); a
+  cache miss no longer leaves a gray rectangle.
+- Dock icon comes from `icon.png`, not the letter P from the Tauri scaffold.
+  macOS dev uses `icons/icon.icns` / `icons/icon.png` generated from the
+  root `icon.png`.
+- Settings open over the window (File → Settings…, ⌘,). The page no longer
+  hides behind panes or crashes on `structuredClone` of a `$state` proxy.
+- Settings: keep or hide the Dock icon after the window is hidden
+  (`window.show_in_dock`); preview/Split font, size, and colors
+  (`viewer.preview_*`) are written to `config.json`.
+- Export and ⌘⌥E save the open document as PDF through the native Save
+  dialog.
+- The window is draggable from the top strip again: opaque overlay title bar
+  with `data-tauri-drag-region` and `startDragging`.
+- Window title: `1537paperstreet - {path of the open file}`.
+- Image in the editor bar inserts `![]()`.
+- The tree no longer shows “This folder is empty” for a folder that has
+  files: IPC commands take snake_case arguments as in PLAN § 3.3 (Tauri 2
+  expects camelCase by default).
+- A transparent window no longer prints Tauri’s `macos-private-api` warning:
+  `app.macOSPrivateApi` and the matching Cargo feature are on; vibrancy
+  failures go to `logs/app.log`.
 
 ### Added
 
-- В панели Preview / Split: крошечные A− / A+ меняют кегль чтения, − / % / +
-  зумят превью (50–200 %).
-- Иконка приложения — `icon.png`; в меню File и в меню приложения — About с
-  логотипом, версией, «Made in Austin ✩ Texas» и ссылкой на aomega.co.
-- Иконка в строке меню macOS (`icon-system.png`): закрытие окна прячет его,
-  процесс остаётся; клик по иконке возвращает окно, Quit в меню иконки
-  завершает приложение.
+- In Preview / Split: small A− / A+ change reading size; − / % / + zoom the
+  preview (50–200 %).
+- App icon is `icon.png`; File and the application menu have About with the
+  logo, version, “Made in Austin ✩ Texas”, and a link to aomega.co.
+- macOS menu-bar icon (`icon-system.png`): closing the window hides it, the
+  process stays; click the icon to show the window, Quit in that menu exits.
 
-- Колонка оглавления меняет ширину; `window.toc_w` сохраняется в конфиге.
-- Панель документа: Preview / Edit / Split, Save, Export и Settings; темы
-  в настройках выбираются палитрой и применяются сразу. Открытые документы
-  держатся во вкладках. Новая папка сразу предлагает имя; повторный клик
-  по выделенному имени переименовывает. Перетаскивание в дереве подсвечивает
-  папку назначения и раскрывает её при наведении.
-- Режим Editor (⌘E) и Split (⌘⇧E): исходник в текстовом поле, сохранение
-  через `doc_save`.
-
-- `docio::read_doc` сообщает `trailingNewline` и отдаёт текст с LF; `write_doc`
-  атомарно восстанавливает BOM, EOL и финальный перевод строки, пропускает
-  запись при совпадении байтов и возвращает конфликт при расхождении `base_hash`.
-
-- Drop из Finder на окно регистрирует папку или открывает Markdown-файл;
-  Open Folder… / Open File… остаются в сайдбаре и в меню File.
-
-- Руководство пользователя (mdBook в `docs/src/`) для ридера: установка,
-  проекты, файлы, Mermaid, темы, клавиши, приватность; заготовки разделов
-  редактора, истории и экспорта. Ручной smoke-тест — `docs/release-checklist.md`.
-- Doctest'ы для публичного API (`resolve`, `read_doc`, `render`, кэш Mermaid);
-  CI отклоняет `cargo doc` с warning'ами.
-- Пороги покрытия в CI: `ps-core` / `ps-render` ≥ 85 %, `ps-app` ≥ 60 %
-  (без тонких IPC-обёрток), `docio` ≥ 95 %, хелперы UI `tree.ts` / `text.ts` ≥ 70 %.
-- Начальный Cargo workspace и каркас приложения Tauri/Svelte.
-- TypeScript-типы для IPC-структур генерируются из `ps-core` (`ts-rs`) в
-  `ui/src/lib/generated/core.ts`; CI отклоняет незакоммиченный дрифт.
-- IPC-команды `config_*` и `projects_*` — тонкие обёртки над `ps-core`; запись
-  конфигурации и реестра проектов идёт через `spawn_blocking`.
-- IPC-команды `tree_read_dir` и `fs_*` — тонкие обёртки над `tree` и `fsops`;
-  все пути проходят через `fsops::resolve`, запись — через `spawn_blocking`.
-- IPC-команды `doc_open` и `doc_source`: первый HTML-чанк возвращается синхронно,
-  остальные уходят событиями `doc://chunk` / `doc://done`; чтение идёт через
-  `docio` (BOM, EOL, UTF-8, порог 8 MB).
-- IPC-команда `open_dropped_paths`: папка регистрируется как проект (повторный
-  drop той же папки переиспользует запись), `.md` открывается внутри содержащего
-  проекта или родительской папки.
-- Левое дерево файлов с ленивым раскрытием и виртуализацией; перетаскивание
-  Markdown-файла или папки на окно открывает проект.
-- File → Open File… / Open Folder… через нативный диалог; раскрытые узлы дерева
-  сохраняются в `ui-state.json`; ширину дерева можно менять, ⌘2 скрывает панель.
-- Контекстное меню дерева: New File, New Folder, Rename, Duplicate, Reveal in
-  Finder, Open in External Editor, Move to Trash. Те же действия доступны из
-  меню File и Go; новые файлы создаются в выделенной папке.
-- Превью показывает оглавление из `DocumentMeta.toc` и плашку с причиной, если
-  файл только для чтения.
-- Контекстное меню Copy to… / Move to… и перетаскивание в дереве (⌥ — копия);
-  при конфликте имён — Replace / Keep Both / Skip. Drop из Finder в папку дерева
-  копирует файлы в проект; ⇧/⌘ выделяют несколько узлов для групповых операций.
-- Изображения в превью получают `width`/`height` из заголовка файла, чтобы вёрстка
-  не прыгала при ленивой загрузке.
-- Живое дерево по `fs://changed`, быстрое открытие файла (⌘P), поиск в документе
-  (⌘F), настройки (⌘,), `asset://` только из корней проектов, ссылки `.md`
-  открываются во вьюере, http(s) — в браузере.
-- Overlay-титлбар и вибрантный сайдбар на macOS; повторный запуск фокусирует
-  существующее окно; логи пишутся в `~/.1537paperstreet/logs/` с ротацией.
-- 12 встроенных тем плюс пользовательские JSON из `~/.1537paperstreet/themes/`;
-  переключение одним атрибутом `data-theme` и следование системному виду.
-- Три панели (проекты / дерево / превью) с сохраняемой шириной и ⌘1 / ⌘2;
-  виртуализированный список проектов, поиск с подсветкой, ⌘⇧P, перенос папки
-  недоступного проекта без правок файлов на диске.
-- Ленивый рендер Mermaid (динамический импорт, IntersectionObserver, кэш SVG)
-  и KaTeX; кнопка Copy на блоках кода; клик по диаграмме открывает зум.
-- Нативное меню macOS со всеми горячими клавишами из PLAN § 11.3; пользовательские
-  команды уходят в UI событием `menu://action`, размер шрифта пишется в конфиг.
-- `AppState` открывает конфигурацию и реестр проектов при старте, а окно
-  восстанавливает размер и позицию без видимой вспышки.
-- Версионированное атомарное JSON-хранилище с миграциями, резервными копиями и
-  сохранением повреждённых файлов.
-- Конфигурация приложения с дефолтами и валидацией типографических диапазонов.
-- Реестр проектов с ULID, безопасным удалением записей и ленивой проверкой
-  доступности папок.
-- Инкрементальный нечёткий поиск проектов по имени и пути.
-- Безопасное разрешение путей проекта с NFC-нормализацией и защитой от выхода
-  через абсолютные пути, `..` и симлинки.
-- Создание папок и пустых файлов, атомарное переименование и безопасные
-  подсказки свободного имени при конфликте.
-- Рекурсивное копирование с прогрессом для больших файлов, стратегиями
-  Replace/Keep Both/Skip, снимком перед заменой и откатом при ошибке.
-- Пакетное перемещение: атомарный `rename` внутри тома и staged copy/delete с
-  восстановлением исходного пути при ошибке между томами; конкурентно созданные
-  файлы назначения сохраняются в recovery staging и не удаляются.
-- Перемещение файлов в системную Корзину и отдельное безвозвратное удаление;
-  обе операции требуют успешных `pre_trash`-снимков для всей партии заранее.
-- Ленивое чтение одного уровня дерева с фильтром скрытых файлов, каталогами
-  первыми и natural sort; 50 000 файлов читаются в среднем за 37,9 мс.
-- Наблюдение за проектом через FSEvents с дебаунсом 150 мс, коалесценцией путей
-  и ограниченным раскрытыми узлами восстановлением после переполнения очереди.
-- Базовый Markdown-рендерер с таблицами, сносками, зачёркиванием, чек-листами,
-  умной пунктуацией, атрибутами заголовков и математикой.
-- Fenced-блоки известных языков подсвечиваются через `syntect` с чистым Rust
-  backend `regex-fancy` и классовым выводом `syntax-*` без инлайновых стилей.
-- Уникальные slug-идентификаторы заголовков и структура оглавления в порядке
-  исходного документа.
-- Mermaid-блоки преобразуются в безопасные шаблоны с BLAKE3-хешем исходника
-  для последующего ленивого рендера и кэширования.
-- Относительные ссылки и изображения преобразуются в проектные `asset://` URL;
-  выход за корень через `..` или симлинки отклоняется на стороне Rust.
-- Сырой HTML по умолчанию очищается от активного содержимого; ссылки со схемами
-  `javascript:` и `data:` блокируются, а обход доступен только явной опцией.
-- Верхнеуровневые блоки Markdown группируются примерно по 64 KiB в секции с
-  `content-visibility: auto`, не разрезая один крупный блок.
-- Каждый верхнеуровневый блок связывается с точным диапазоном исходных байтов,
-  номером строки и BLAKE3-хешем для синхронного скролла и будущего
-  инкрементального рендера.
-- Добавлен двухуровневый LRU-кэш готового HTML: до 16 документов / 64 MiB в
-  памяти и до 200 MiB на диске с атомарной записью и очисткой старых записей.
-- Добавлен snapshot-корпус полного Markdown-конвейера: CommonMark/GFM,
-  Mermaid, математика, небезопасный и повреждённый ввод, Unicode/RTL и
-  генерируемый документ размером 5 MiB.
-- Добавлены Criterion-бенчмарки Markdown размером 10 KiB–5 MiB; устранён
-  квадратичный подбор суффиксов для повторяющихся идентификаторов заголовков.
-- Добавлен `cargo-fuzz`-таргет для полного Markdown-конвейера; управляющие
-  символы нормализуются без изменения байтовых смещений, а найденный краш
-  парсера закреплён минимизированным регрессионным тестом.
-- ADR-001…ADR-007 и каркас пользовательской документации mdBook.
+- Table of contents column is resizable; `window.toc_w` is stored in config.
+- Document bar: Preview / Edit / Split, Save, Export, and Settings; themes in
+  Settings are chosen from a palette and apply immediately. Open documents
+  stay in tabs. A new folder immediately offers a name; clicking a selected
+  name again renames. Drag in the tree highlights the destination folder and
+  expands it on hover.
+- Editor (⌘E) and Split (⌘⇧E): source in a text field, save through
+  `doc_save`.
+- `docio::read_doc` reports `trailingNewline` and returns text with LF;
+  `write_doc` restores BOM, EOL, and a trailing newline atomically, skips the
+  write when bytes match, and returns a conflict when `base_hash` diverges.
+- Drop from Finder onto the window registers a folder or opens a Markdown
+  file; Open Folder… / Open File… remain in the sidebar and the File menu.
+- User guide (mdBook in `docs/src/`) for the reader: install, projects,
+  files, Mermaid, themes, shortcuts, privacy; stubs for editor, history, and
+  export. Manual smoke test: `docs/release-checklist.md`.
+- Doctests for the public API (`resolve`, `read_doc`, `render`, Mermaid
+  cache); CI rejects `cargo doc` warnings.
+- Coverage gates in CI: `ps-core` / `ps-render` ≥ 85 %, `ps-app` ≥ 60 %
+  (excluding thin IPC wrappers), `docio` ≥ 95 %, UI helpers `tree.ts` /
+  `text.ts` ≥ 70 %.
+- Initial Cargo workspace and Tauri/Svelte app shell.
+- TypeScript types for IPC structs are generated from `ps-core` (`ts-rs`)
+  into `ui/src/lib/generated/core.ts`; CI rejects uncommitted drift.
+- IPC `config_*` and `projects_*` — thin wrappers over `ps-core`; config and
+  project registry writes go through `spawn_blocking`.
+- IPC `tree_read_dir` and `fs_*` — thin wrappers over `tree` and `fsops`;
+  every path goes through `fsops::resolve`, writes through `spawn_blocking`.
+- IPC `doc_open` and `doc_source`: the first HTML chunk returns synchronously,
+  the rest as `doc://chunk` / `doc://done`; reads go through `docio` (BOM,
+  EOL, UTF-8, 8 MB cap).
+- IPC `open_dropped_paths`: a folder is registered as a project (dropping the
+  same folder again reuses the record); `.md` opens inside a containing
+  project or the parent folder.
+- Left file tree with lazy expand and virtualization; dropping a Markdown
+  file or folder onto the window opens a project.
+- File → Open File… / Open Folder… via the native dialog; expanded tree
+  nodes persist in `ui-state.json`; the tree width is adjustable, ⌘2 hides
+  the pane.
+- Tree context menu: New File, New Folder, Rename, Duplicate, Reveal in
+  Finder, Open in External Editor, Move to Trash. The same actions are in
+  File and Go; new files are created in the selected folder.
+- Preview shows a TOC from `DocumentMeta.toc` and a banner if the file is
+  read-only.
+- Context menu Copy to… / Move to… and drag in the tree (⌥ copies); on a
+  name clash — Replace / Keep Both / Skip. Drop from Finder into a tree
+  folder copies into the project; ⇧/⌘ select several nodes for group
+  operations.
+- Preview images get `width`/`height` from the file header so layout does not
+  jump on lazy load.
+- Live tree from `fs://changed`, quick-open (⌘P), find in the document (⌘F),
+  Settings (⌘,), `asset://` only from project roots, `.md` links open in the
+  viewer, http(s) in the browser.
+- Overlay title bar and vibrancy sidebar on macOS; a second launch focuses
+  the existing window; logs go to `~/.1537paperstreet/logs/` with rotation.
+- 12 built-in themes plus user JSON from `~/.1537paperstreet/themes/`;
+  switching is one `data-theme` attribute and follows the system appearance.
+- Three panes (projects / tree / preview) with stored widths and ⌘1 / ⌘2;
+  virtualized project list, search highlight, ⌘⇧P, relocate an unavailable
+  project without touching files on disk.
+- Lazy Mermaid (dynamic import, IntersectionObserver, SVG cache) and KaTeX;
+  Copy on code blocks; click a diagram to zoom.
+- Native macOS menu with every PLAN § 11.3 shortcut; custom commands go to
+  the UI as `menu://action`; font size is written to config.
+- `AppState` opens config and the project registry at launch; the window
+  restores size and position without a visible flash.
+- Versioned atomic JSON store with migrations, backups, and preservation of
+  corrupt files.
+- App config with defaults and typography range checks.
+- Project registry with ULID, safe record removal, and lazy folder
+  availability checks.
+- Incremental fuzzy search of projects by name and path.
+- Safe project path resolution with NFC normalization and protection against
+  escape via absolute paths, `..`, and symlinks.
+- Folder and empty-file creation, atomic rename, and safe free-name
+  suggestions on clash.
+- Recursive copy with progress for large files, Replace/Keep Both/Skip,
+  snapshot before replace, and rollback on error.
+- Batch move: atomic `rename` on the same volume and staged copy/delete with
+  source restore on cross-volume failure; concurrently created destination
+  files stay in recovery staging and are not deleted.
+- Move to the system Trash and a separate permanent delete; both require
+  successful `pre_trash` snapshots for the whole batch first.
+- Lazy one-level tree read with a hidden-file filter, directories first, and
+  natural sort; 50,000 files average 37.9 ms.
+- Project watch via FSEvents with 150 ms debounce, path coalescing, and
+  overflow recovery limited to expanded nodes.
+- Base Markdown renderer with tables, footnotes, strikethrough, task lists,
+  smart punctuation, heading attributes, and math.
+- Fenced blocks of known languages highlighted through `syntect` with the
+  pure-Rust `regex-fancy` backend and classed `syntax-*` output, no inline
+  styles.
+- Unique heading slug ids and a TOC in source order.
+- Mermaid fences become safe templates with a BLAKE3 of the source for lazy
+  render and cache.
+- Relative links and images become project `asset://` URLs; escape via `..`
+  or symlinks is rejected in Rust.
+- Raw HTML is sanitized by default; `javascript:` and `data:` links are
+  blocked; bypass is an explicit option only.
+- Top-level Markdown blocks are grouped near 64 KiB with
+  `content-visibility: auto`, without splitting one oversized block.
+- Each top-level block is tied to an exact source byte range, line number,
+  and BLAKE3 hash for synced scroll and future incremental render.
+- Two-level LRU cache of finished HTML: up to 16 documents / 64 MiB in
+  memory and 200 MiB on disk with atomic writes and pruning of old entries.
+- Snapshot corpus of the full Markdown pipeline: CommonMark/GFM, Mermaid,
+  math, unsafe and broken input, Unicode/RTL, and a generated 5 MiB document.
+- Criterion benches for Markdown from 10 KiB–5 MiB; quadratic suffix search
+  for colliding heading ids was removed.
+- `cargo-fuzz` target for the full Markdown pipeline; control characters are
+  normalized without shifting byte offsets; a parser crash is pinned with a
+  minimized regression test.
+- ADR-001…ADR-007 and the mdBook user-guide skeleton.
 
 [Unreleased]: https://github.com/mpakus/downey.jr/compare/v0.2.1...HEAD
 [0.2.1]: https://github.com/mpakus/downey.jr/releases/tag/v0.2.1

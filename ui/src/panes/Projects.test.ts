@@ -21,4 +21,19 @@ describe('Projects', () => {
     expect(body).toContain('Open Folder…')
     expect(body).toContain('Your Markdown projects will appear here.')
   })
+
+  it('rebinds the list when reloadSeq changes', () => {
+    const { body } = render(Projects, {
+      props: {
+        reloadSeq: 3,
+        onopen() {},
+        onerror() {},
+        onadd() {},
+        onremoved() {},
+        oncollapse() {},
+      },
+    })
+
+    expect(body).toContain('data-reload-seq="3"')
+  })
 })

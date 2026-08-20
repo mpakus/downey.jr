@@ -1,11 +1,11 @@
-# Экспорт
+# Export
 
-**Export** в панели документа, File → Export PDF… и ⌘⌥E сохраняют открытый
-Markdown как PDF: нативный диалог Save, затем снимок превью (тема, диаграммы,
-изображения). Файл можно положить в любую папку.
+**Export** in the document bar, File → Export PDF…, and ⌘⌥E save the open
+Markdown as PDF: native Save dialog, then a snapshot of the preview (theme,
+diagrams, images). You can put the file in any folder.
 
-ZIP всего проекта — отдельная фаза (P12); пункт Export… в контекстном меню
-проекта пока сообщает, что упаковка придёт позже.
+ZIP of the whole project is a later phase (P12); Export… on a project’s
+context menu currently says packaging will arrive later.
 
-Save PNG в модальном окне диаграммы — не экспорт документа, а сохранение
-одной картинки в выбранное вами место.
+Save PNG in the diagram modal is not document export — it saves one picture
+where you choose.

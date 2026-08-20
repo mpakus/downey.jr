@@ -1,49 +1,49 @@
-# Работа с файлами
+# Working with files
 
-Дерево показывает один уровень за раз и подгружает детей при раскрытии.
-Раскрытые папки и ширина панели запоминаются между сессиями. ⌘2 скрывает
-дерево. Список проектов сворачивается кнопкой в шапке панели или ⌘1; на
-месте остаётся узкая полоска, чтобы открыть его снова.
+The tree shows one directory level at a time and loads children when you
+expand a folder. Expanded folders and pane width persist across sessions.
+⌘2 hides the tree. The Projects list collapses from the pane header or ⌘1;
+a slim strip remains so you can open it again.
 
-Иконки отличают папку, Markdown (`.md`, `.markdown`, `.mdown`, `.mdwn`) и
-прочие файлы.
+Icons distinguish folders, Markdown (`.md`, `.markdown`, `.mdown`, `.mdwn`),
+and other files.
 
-## Операции
+## Actions
 
-Контекстное меню дерева и пункты File / Go:
+Tree context menu and File / Go:
 
-| Действие | Как |
+| Action | How |
 | --- | --- |
-| New File / New Folder | ⌘N / ⌘⇧N — в выделенной папке |
-| Rename | повторный клик по имени, F2 или контекстное меню |
-| Duplicate | копия рядом |
-| Copy to… / Move to… | выбор папки назначения |
+| New File / New Folder | ⌘N / ⌘⇧N — in the selected folder |
+| Rename | click the selected name again, F2, or the context menu |
+| Duplicate | copy beside the original |
+| Copy to… / Move to… | pick a destination folder |
 | Reveal in Finder | ⌘⇧R |
 | Open in External Editor | ⌘⇧O |
-| Move to Trash | ⌘⌫, с подтверждением |
+| Move to Trash | ⌘⌫, with confirmation |
 
-Перетаскивание внутри дерева перемещает файл. ⌥ во время drop — копия.
-Drop из Finder в папку дерева копирует файлы в проект.
+Drag inside the tree moves a file. Hold ⌥ while dropping to copy. Drop from
+Finder into a tree folder copies files into the project.
 
-⇧ и ⌘ выделяют несколько узлов для группового копирования, перемещения,
-дублирования и удаления.
+⇧ and ⌘ select several nodes for group copy, move, duplicate, and trash.
 
-⌘, открывает настройки (File → Settings…; в меню приложения — то же). Темы
-выбираются там же — светлая и тёмная палитры с живым предпросмотром
-(Solarized, Nord, Gruvbox, Catppuccin, Tokyo Night, GitHub и Paper). Там же:
-оставить или убрать иконку в Dock после скрытия окна, и шрифт/цвета превью.
+⌘, opens Settings (File → Settings…; same item in the application menu).
+Themes are chosen there — light and dark palettes with a live preview
+(Solarized, Nord, Gruvbox, Catppuccin, Tokyo Night, GitHub, and Paper). You
+can also keep or hide the Dock icon after the window is hidden, and set
+preview font and colors.
 
-⌘P — быстрый поиск Markdown-файлов в текущем проекте. Открытые файлы
-держатся во вкладках над превью; крестик закрывает вкладку.
+⌘P quick-opens Markdown in the current project. Open files stay in tabs above
+the preview; the close control closes a tab.
 
-Новая папка или файл сразу даёт переименовать имя. Повторный клик по уже
-выделенному имени (не двойной — двойной открывает) тоже включает
-переименование; F2 делает то же. Перетаскивание в дереве перемещает файл
-в папку; ⌥ — копия; при удержании над папкой она раскрывается.
+A new folder or file immediately offers a name. Clicking an already selected
+name (not a double-click — that opens) also starts rename; F2 does the same.
+Dragging in the tree moves into a folder; ⌥ copies; hovering a folder expands
+it.
 
-Панель под титлбаром: Preview / Edit / Split, Save и Export; в Preview и
-Split — кегль и зум. Подробнее — в [редактировании](editing.md).
+The bar under the title: Preview / Edit / Split, Save, and Export; in Preview
+and Split — type size and zoom. More in [editing](editing.md).
 
-Изображения получают размер из заголовка файла, чтобы вёрстка не прыгала.
-Слишком большой файл (> 8 MB), бинарный или отсутствующий показывается
-сообщением, а не пустым экраном.
+Images get width and height from the file header so layout does not jump.
+A file that is too large (> 8 MB), binary, or missing shows a message instead
+of a blank pane.

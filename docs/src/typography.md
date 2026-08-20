@@ -1,18 +1,18 @@
-# Шрифты и типографика
+# Fonts and typography
 
-Превью использует гарнитуры, которые уже стоят на macOS, затем запасные:
+Preview uses typefaces already on macOS, then fallbacks:
 
-- текст: New York, Iowan Old Style, Palatino, Georgia, system-ui
-- код: JetBrains Mono (если установлен), SF Mono, Menlo, ui-monospace
+- body: New York, Iowan Old Style, Palatino, Georgia, system-ui
+- code: JetBrains Mono (if installed), SF Mono, Menlo, ui-monospace
 
-Кегль интерфейса: ⌘+ / ⌘− / ⌘0, тот же выбор в Settings → Typography.
-Значение пишется в `config.json` и переживает перезапуск.
+Chrome type size: ⌘+ / ⌘− / ⌘0, same control in Settings → Typography.
+The value is written to `config.json` and survives relaunch.
 
-В Preview и Split панель справа даёт A− / A+ (кегль чтения) и − / % / +
-(зум страницы на сессию, 50–200 %).
+In Preview and Split the right side of the bar has A− / A+ (reading size)
+and − / % / + (session page zoom, 50–200 %).
 
-Шрифт, кегль и цвета именно превью (и правой половины Split) живут в
-секции Preview & Split: `preview_font`, `preview_font_size`, `preview_bg`,
-`preview_fg`. Пустое / `0` — токены темы.
+Font, size, and colors for the preview itself (and the right half of Split)
+live under Preview & Split: `preview_font`, `preview_font_size`,
+`preview_bg`, `preview_fg`. Empty / `0` means theme tokens.
 
-JetBrains Mono в приложение не вшит: если шрифта нет, будет SF Mono.
+JetBrains Mono is not bundled: if it is missing, you get SF Mono.

@@ -1,25 +1,25 @@
-# Темы
+# Themes
 
-Двенадцать встроенных тем (Paper, Solarized, Nord, Gruvbox, Catppuccin,
-Tokyo Night, GitHub — светлые и тёмные пары, где они есть). Цвета живут
-в CSS-переменных; интерфейс только ставит `data-theme`.
+Twelve built-in themes (Paper, Solarized, Nord, Gruvbox, Catppuccin, Tokyo
+Night, GitHub — light and dark pairs where they exist). Colors live in CSS
+variables; the UI only sets `data-theme`.
 
-⌘⌥T переключает светлую и тёмную для текущей сессии и следует системному
-виду, пока вы сами не зафиксировали тему. Пара «светлая / тёмная» в
-настройках от этого не меняется.
+⌘⌥T toggles light and dark for the current session and follows the system
+appearance until you pin a theme yourself. That does not rewrite the
+light/dark pair in Settings.
 
-Откройте Settings (⌘, или File → Settings…): секции Light / Dark показывают
-все доступные темы карточками с палитрой; выбор применяется сразу.
+Open Settings (⌘, or File → Settings…): Light / Dark sections show every
+available theme as a palette card; the choice applies immediately.
 
-Превью и Split могут переопределить шрифт, кегль, цвет текста и фона
-чтения — отдельно от темы интерфейса. Пустые значения в `config.json`
-(`preview_font`, `preview_font_size: 0`, `preview_bg`, `preview_fg`)
-означают «как в теме».
+Preview and Split can override reading font, size, text color, and background
+— separate from the chrome theme. Empty values in `config.json`
+(`preview_font`, `preview_font_size: 0`, `preview_bg`, `preview_fg`) mean
+“use the theme.”
 
-Своя тема — JSON в `~/.1537paperstreet/themes/`. Нужны поля `id`, `name`,
-`appearance` (`light` или `dark`) и объект `tokens` с ключами в kebab-case
-(`bg`, `fg`, `accent`, `hl-kw`, …). Неполный или битый файл пропускается,
-остальные темы продолжают работать. Пример токенов — любой файл в
+A custom theme is JSON in `~/.1537paperstreet/themes/`. Required fields:
+`id`, `name`, `appearance` (`light` or `dark`), and a `tokens` object with
+kebab-case keys (`bg`, `fg`, `accent`, `hl-kw`, …). An incomplete or broken
+file is skipped; other themes keep working. Token examples live in
 `crates/ps-core/themes/`.
 
-Лицензии палитр — в [`docs/credits.md`](../credits.md).
+Palette licenses: [`docs/credits.md`](../credits.md).

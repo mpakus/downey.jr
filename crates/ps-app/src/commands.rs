@@ -14,6 +14,7 @@ use ps_core::fsops::{ConflictStrategy, UntitledKind};
 use ps_core::projects::{OpenDropResult, Project, ProjectsListQuery, ProjectsListResult};
 use ps_core::themes::ThemeInfo;
 use ps_core::tree::TreeNode;
+use ps_core::updates::UpdateCheck;
 use tauri::{Emitter, State};
 
 use crate::fs_watch::{self, WatchHub};
@@ -449,6 +450,18 @@ pub(crate) async fn open_url(url: String) -> Result<(), String> {
         .await
         .map_err(|error| error.to_string())
         .and_then(|result| result.map_err(to_command_error))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub(crate) async fn updates_check() -> Result<UpdateCheck, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let body = crate::updates::fetch_latest_release_json()?;
+        ps_core::updates::from_github_json(env!("CARGO_PKG_VERSION"), &body)
+            .map_err(to_command_error)
+    })
+    .await
+    .map_err(|error| error.to_string())
+    .and_then(|result| result)
 }
 
 #[tauri::command(rename_all = "snake_case")]

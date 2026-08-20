@@ -1,34 +1,34 @@
-# Редактирование и автосохранение
+# Editing and saving
 
-Откройте Markdown-файл в дереве. Панель под титлбаром показывает, что можно
-сделать с документом:
+Open a Markdown file in the tree. The bar under the title shows what you can
+do with the document:
 
-- **Preview** — чтение (⌘E переключает с редактора)
-- **Edit** — исходник в текстовом поле (⌘E)
-- **Split** — превью и исходник рядом (⌘⇧E); перетащите разделитель,
-  чтобы изменить ширину редактора (сохраняется в `window.editor_w`).
-- **Save** — записать файл (⌘S); кнопка неактивна, пока файл не открыт
-  или только для чтения
-- **Export** — PDF текущего документа (⌘⌥E); диалог Save выбирает папку
+- **Preview** — reading (⌘E toggles from the editor)
+- **Edit** — source in a text field (⌘E)
+- **Split** — preview and source side by side (⌘⇧E); drag the divider to
+  change editor width (stored as `window.editor_w`).
+- **Save** — write the file (⌘S); the button is disabled until a file is open
+  and writable
+- **Export** — PDF of the current document (⌘⌥E); the Save dialog picks the
+  folder
 
-В правом верхнем углу превью — маленькая кнопка **Full size**: превью на всё
-окно (под титлбаром). Повторный клик или Escape возвращают обычный вид.
+Top-right of the preview — a small **Full size** button: preview fills the
+window (under the title bar). Click again or press Escape to return.
 
-В режиме Edit появляются кнопки Text / Links / Media (жирный, курсив,
-ссылка, wiki-ссылка `[[Note]]`, чек-лист `- [ ]`, заголовок и т.д.).
+In Edit, Text / Links / Media buttons appear (bold, italic, link, wiki link
+`[[Note]]`, task item `- [ ]`, heading, and so on).
 
-Превью рендерит GitHub Flavored Markdown: таблицы, зачёркивание, чек-листы,
-сноски, alerts (`> [!NOTE]`), definition lists. YAML front matter в начале
-файла (`---` … `---`) показывается карточкой ключ/значение, а не как
-горизонтальные линии. `[[Note]]` и `[[Note|подпись]]` открывают
-`Note.md` в проекте (рядом с документом или в корне); ненайденные ссылки
-рисуются пунктиром. Fenced-блоки кода подсвечиваются (Rust, Python, Ruby,
-Elixir, YAML, JS/TS и другие).
+Preview renders GitHub Flavored Markdown: tables, strikethrough, task lists,
+footnotes, alerts (`> [!NOTE]`), definition lists. YAML front matter at the
+top of the file (`---` … `---`) shows as a key/value card, not as horizontal
+rules. `[[Note]]` and `[[Note|label]]` open `Note.md` in the project (next to
+the document or at the root); missing links are drawn dashed. Fenced code is
+highlighted (Rust, Python, Ruby, Elixir, YAML, JS/TS, and others).
 
-`write_doc` атомарно восстанавливает BOM, переносы строк и финальный перевод
-строки, не пишет при совпадении байтов и не затирает файл, если `base_hash`
-разошёлся с диском. Открыли и сохранили без правок — файл побайтово тот же.
+`write_doc` restores BOM, line endings, and a trailing newline atomically,
+skips the write when the encoded bytes already match disk, and does not
+overwrite when `base_hash` disagrees with the file. Open and save with no
+edits — the file is byte-for-byte the same.
 
-Автосохранение через 800 мс без ввода и CodeMirror — следующие задачи P9.
-Пока сохраняйте ⌘S или кнопкой Save. Внешний редактор по-прежнему доступен
-(⌘⇧O).
+Autosave after 800 ms idle and CodeMirror are later P9 work. For now save
+with ⌘S or Save. An external editor is still available (⌘⇧O).

@@ -1,13 +1,13 @@
-# Приватность
+# Privacy
 
-Документы не покидают компьютер. Нет аккаунта, нет аналитики, нет CDN для
-тем, шрифтов, Mermaid и KaTeX.
+Documents do not leave the computer. There is no account, no analytics, and
+no CDN for themes, fonts, Mermaid, or KaTeX.
 
-Единственный запланированный исходящий запрос — опциональная проверка
-обновлений с подписью. Пока её нет.
+The only outgoing request is an update check from the button or
+File → Check for Updates…. It talks to GitHub Releases and does not include
+documents. Signed in-app install is still ahead and will stay optional.
 
-`asset://` отдаёт файлы только из корней зарегистрированных проектов.
-Ссылки `javascript:`, `data:` и локальные `file:` из документа не
-открываются как навигация.
+`asset://` serves files only from registered project roots. `javascript:`,
+`data:`, and local `file:` links in a document are not used as navigation.
 
-Логи пишут действия и ошибки, не содержимое Markdown.
+Logs record actions and errors, not Markdown contents.

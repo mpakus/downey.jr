@@ -1,57 +1,64 @@
-# Ручной smoke-тест перед релизом
+# Manual smoke test before a release
 
-Пункты, которые CI не закрывает. Проходить на чистой машине или на гостевой
-учётной записи macOS 12+, оба архитектуры, если собирается universal binary.
-Отмечать только то, что реально проверили в этой сборке.
+Items CI does not cover. Run on a clean machine or a guest macOS 12+ account,
+both architectures if you ship a universal binary. Check only what you
+actually verified on this build.
 
-Ридер (текущий продукт):
+Reader (current product):
 
-1. Первый запуск: окно появляется без вспышки неверной геометрии, traffic lights
-   на месте, титлбар overlay, сайдбар вибрантный; Open Folder… в панели проектов
-   и File → Open Folder… / Open File… открывают содержимое.
-2. Повторный запуск того же `.app` фокусирует уже открытое окно, а не создаёт
-   второе.
-3. File → Open Folder… регистрирует папку; повторное открытие той же папки не
-   дублирует проект.
-4. Drop папки на окно и drop `.md` на окно открывают проект и файл.
-5. Дерево: ленивое раскрытие, виртуализация на большой папке, ⌘2 скрывает
-   панель, ширина запоминается после перезапуска.
-6. Иконки: папка, Markdown и прочий файл визуально различимы.
-7. Контекстное меню и File/Go: New File/Folder, Rename, Duplicate, Copy/Move to…,
-   Reveal in Finder, Open in External Editor, Move to Trash.
-8. DnD внутри дерева перемещает; ⌥ — копирует; drop из Finder в папку дерева
-   импортирует.
-9. Конфликт имён: Replace / Keep Both / Skip, «применить ко всем».
-10. ⇧/⌘ выделяют несколько узлов; групповое перемещение в Корзину спрашивает
-    подтверждение.
-11. Живое дерево: правка файла в Finder обновляет дерево без потери выделения.
-12. ⌘P открывает файл внутри проекта; ⌘⇧P переключает проект; поиск проектов
-    подсвечивает совпадение.
-13. Недоступный проект: пункт Find Folder… переносит запись, файлы на диске не
-    трогает. Удаление проекта из списка не удаляет папку.
-14. Превью: TOC, переход по якорю, баннер read-only, изображения без прыжка
-    вёрстки, битый/слишком большой/бинарный файл — понятная ошибка, не краш.
-15. Ссылки: `.md` внутри проекта открывается во вьюере; http(s) — в браузере;
-    `javascript:` и `file:` не открываются.
-16. ⌘F ищет в превью; ⌘, открывает настройки; ⌘1 / ⌘2 прячут панели.
-17. Темы: переключение ⌘⌥T следует системе или сессии и не переписывает пару
-    светлая/тёмная в конфиге; пользовательский JSON из
-    `~/.1537paperstreet/themes/` появляется в списке.
-18. Mermaid: диаграмма рисуется при подскролле, клик открывает зум, Copy SVG и
-    Save PNG через нативный диалог; синтаксическая ошибка показывает исходник
-    и не ломает страницу. Выключение в Settings оставляет понятное сообщение.
-19. KaTeX: формулы рисуются лениво; выключение в Settings не роняет превью.
-20. Блок кода: кнопка Copy копирует текст; цвета подсветки из токенов темы.
-21. Шрифт ⌘+ / ⌘− / ⌘0 меняет кегль превью и сохраняется в конфиге.
-22. Нет исходящих сетевых запросов при чтении локального документа (проверка
-    в Activity Monitor / Little Snitch по желанию).
-23. Лог `~/.1537paperstreet/logs/app.log` не содержит текст открытого документа.
-24. Иконка приложения в Dock — `icon.png`; File → About и About в меню
-    приложения показывают логотип, версию, «Made in Austin ✩ Texas» и открывают
-    aomega.co в браузере.
-25. Красный светофор прячет окно; иконка остаётся справа в строке меню;
-    клик возвращает окно; Quit в меню иконки / ⌘Q завершают процесс.
+1. First launch: the window appears without a flash of the wrong geometry,
+   traffic lights in place, overlay title bar, vibrancy sidebar; Open Folder…
+   in Projects and File → Open Folder… / Open File… open content. The folder
+   appears in the Projects list.
+2. Launching the same `.app` again focuses the existing window instead of
+   creating a second one.
+3. File → Open Folder… registers the folder; opening the same folder again
+   does not duplicate the project.
+4. Drop a folder on the window and drop a `.md` on the window open the
+   project and the file; the folder is listed under Projects.
+5. Tree: lazy expand, virtualization on a large folder, ⌘2 hides the pane,
+   width is remembered after relaunch.
+6. Icons: folder, Markdown, and other files are visually distinct.
+7. Context menu and File/Go: New File/Folder, Rename, Duplicate, Copy/Move
+   to…, Reveal in Finder, Open in External Editor, Move to Trash.
+8. DnD inside the tree moves; ⌥ copies; drop from Finder into a tree folder
+   imports.
+9. Name clash: Replace / Keep Both / Skip, apply to all.
+10. ⇧/⌘ select several nodes; group Move to Trash asks for confirmation.
+11. Live tree: editing a file in Finder updates the tree without losing
+    selection.
+12. ⌘P opens a file inside the project; ⌘⇧P switches project; project search
+    highlights the match.
+13. Unavailable project: Find Folder… relocates the record and does not
+    touch files on disk. Removing a project from the list does not delete the
+    folder.
+14. Preview: TOC, jump to an anchor, read-only banner, images without layout
+    jump, broken / too large / binary file — a clear error, not a crash.
+15. Links: `.md` inside the project opens in the viewer; http(s) in the
+    browser; `javascript:` and `file:` do not open.
+16. ⌘F searches the preview; ⌘, opens Settings; ⌘1 / ⌘2 hide panes.
+17. Themes: ⌘⌥T follows the system or the session and does not rewrite the
+    light/dark pair in config; user JSON from `~/.1537paperstreet/themes/`
+    appears in the list.
+18. Mermaid: the diagram draws on scroll-in, click opens zoom, Copy SVG and
+    Save PNG use the native dialog; a syntax error shows the source and does
+    not break the page. Turning it off in Settings leaves a clear message.
+19. KaTeX: formulas draw lazily; turning it off in Settings does not crash
+    preview.
+20. Code block: Copy copies the text; highlight colors come from theme
+    tokens.
+21. ⌘+ / ⌘− / ⌘0 change preview type size and persist in config.
+22. No outgoing network requests while reading a local document (Activity
+    Monitor / Little Snitch if you want to confirm).
+23. `~/.1537paperstreet/logs/app.log` does not contain the open document’s
+    text.
+24. Dock icon is `icon.png`; File → About and About in the application menu
+    show the logo, version, “Made in Austin ✩ Texas”, and open aomega.co in
+    the browser. File → Check for Updates… opens About and asks GitHub
+    Releases.
+25. The red traffic light hides the window; the icon stays on the right of
+    the menu bar; click shows the window; Quit in that menu / ⌘Q quit the
+    process.
 
-После появления редактора (P9+) добавить: автосохранение, ⌘S, конфликт
-`base_hash`, черновик после краша, панель истории, ZIP-экспорт. Не отмечать
-эти пункты, пока функций нет.
+After the editor (P9+) add: autosave, ⌘S, `base_hash` conflict, crash draft,
+history pane, ZIP export. Do not check those items until the features exist.

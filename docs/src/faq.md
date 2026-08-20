@@ -1,22 +1,25 @@
 # FAQ
 
-**Почему нельзя печатать в превью?** Это ридер. Редактор — следующая большая
-фаза. Пока: ⌘⇧O.
+**Why can’t I type in the preview?** This is a reader. A richer editor is the
+next large phase. For now: ⌘⇧O, or Edit / Split with ⌘S.
 
-**Пропал проект из списка?** Папку, скорее всего, перенесли. Контекстное
-меню → Find Folder….
+**A project disappeared from the list?** The folder was probably moved.
+Context menu → Find Folder….
 
-**Диаграмма пустая.** Проверьте Settings → Render Mermaid diagrams. Если
-включено — синтаксис блока; ошибка показывается под исходником.
+**The diagram is empty.** Check Settings → Render Mermaid diagrams. If it is
+on, check the fence syntax; errors show under the source.
 
-**Формулы не рисуются.** Settings → математика (KaTeX). Нужны `$...$` /
-`$$...$$` в Markdown, как в корпусе рендерера.
+**Formulas don’t render.** Settings → mathematics (KaTeX). You need `$...$` /
+`$$...$$` in the Markdown, as in the renderer corpus.
 
-**Приложение не открывается из DMG.** Тестовая сборка без нотаризации.
-Сборка из исходников: `cargo tauri dev`.
+**The app won’t open from the DMG.** Test build without notarization. From
+source: `cargo tauri dev`. Or Right-click → Open / `xattr -cr` as in
+[Install](install.md).
 
-**Закрыл окно, а иконка в строке меню осталась?** Так и задумано. Клик по
-иконке возвращает окно; Quit в её меню или ⌘Q завершают программу.
+**I closed the window and the menu-bar icon is still there?** That is
+intentional. Click the icon to show the window; Quit in its menu or ⌘Q
+quits the process.
 
-**Есть ли облако, аккаунт, телеметрия?** Нет. Опциональная проверка
-обновлений появится позже и будет выключаемой.
+**Is there a cloud, account, or telemetry?** No. Update checking runs only
+when you choose File → Check for Updates… or the button in About; it asks
+GitHub Releases and does not send documents.

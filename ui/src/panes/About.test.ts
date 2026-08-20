@@ -10,6 +10,15 @@ describe('About', () => {
         version: '0.1.0',
         onclose() {},
         onopen() {},
+        async oncheck() {
+          return {
+            available: false,
+            current: '0.1.0',
+            latest: '0.1.0',
+            release_url: '',
+            message: "You're up to date (0.1.0).",
+          }
+        },
       },
     })
 
@@ -21,5 +30,6 @@ describe('About', () => {
     expect(body).toContain('Made in Austin ✩ Texas')
     expect(body).toContain('https://aomega.co')
     expect(body).toContain('A local Markdown reader for macOS')
+    expect(body).toContain('Check for Updates')
   })
 })

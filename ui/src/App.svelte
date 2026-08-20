@@ -27,6 +27,7 @@
     themesList,
     treeExpandedGet,
     treeExpandedSet,
+    updatesCheck,
     watchStart,
     type Config,
     type ConflictStrategy,
@@ -116,6 +117,9 @@
   } | null>(null)
   let settingsOpen = $state(false)
   let aboutOpen = $state(false)
+  let aboutAutocheck = $state(false)
+  let aboutCheckSeq = $state(0)
+  let projectsReload = $state(0)
   let appVersion = $state('0.1.0')
   let findOpen = $state(false)
   let quickOpen = $state(false)
@@ -317,6 +321,7 @@
 
   async function applyOpened(project: Project, openRelPath: string | null) {
     await loadProjects(project.id)
+    projectsReload += 1
     await activateProject(project, openRelPath)
     error = ''
   }
@@ -442,6 +447,13 @@
         return
       }
       if (id === 'app-about' || id === 'file-about') {
+        aboutAutocheck = false
+        aboutOpen = true
+        return
+      }
+      if (id === 'app-check-updates' || id === 'file-check-updates') {
+        aboutAutocheck = true
+        aboutCheckSeq += 1
         aboutOpen = true
         return
       }
@@ -1113,6 +1125,7 @@
       <aside class="projects-pane" aria-label="Projects">
         <Projects
           activeId={active?.id ?? null}
+          reloadSeq={projectsReload}
           oncollapse={() => (projectsHidden = true)}
           onopen={(project) => {
             void activateProject(project).catch((cause) => {
@@ -1125,6 +1138,7 @@
           onadd={() => void pickOpen('folder')}
           onremoved={() => {
             const previous = active?.id
+            projectsReload += 1
             void loadProjects()
               .then(() => {
                 if (!active) {
@@ -1407,15 +1421,22 @@
   {/if}
 
   {#if aboutOpen}
-    <About
-      version={appVersion}
-      onclose={() => (aboutOpen = false)}
-      onopen={(url) => {
-        void openUrl(url).catch((cause) => {
-          error = errorMessage(cause)
-        })
-      }}
-    />
+    {#key aboutCheckSeq}
+      <About
+        version={appVersion}
+        autocheck={aboutAutocheck}
+        onclose={() => {
+          aboutOpen = false
+          aboutAutocheck = false
+        }}
+        onopen={(url) => {
+          void openUrl(url).catch((cause) => {
+            error = errorMessage(cause)
+          })
+        }}
+        oncheck={() => updatesCheck()}
+      />
+    {/key}
   {/if}
 
   {#if conflictNames.length > 0 && pendingTransfer}

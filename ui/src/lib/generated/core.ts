@@ -532,3 +532,25 @@ appearance: ThemeAppearance,
  * Whether the theme ships with the application.
  */
 builtin: boolean, };
+
+export type UpdateCheck = { 
+/**
+ * Whether `latest` is newer than `current`.
+ */
+available: boolean, 
+/**
+ * Version of the running app, without a `v` prefix.
+ */
+current: string, 
+/**
+ * Latest GitHub Release version, without a `v` prefix.
+ */
+latest: string, 
+/**
+ * HTTPS GitHub Releases URL to open when an update is available.
+ */
+release_url: string, 
+/**
+ * User-facing status line; the UI displays this without further formatting.
+ */
+message: string, };

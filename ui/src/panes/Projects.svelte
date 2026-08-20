@@ -15,6 +15,7 @@
 
   let {
     activeId = null,
+    reloadSeq = 0,
     onopen,
     onerror,
     onadd,
@@ -22,6 +23,7 @@
     oncollapse,
   }: {
     activeId?: string | null
+    reloadSeq?: number
     onopen: (project: Project) => void
     onerror: (message: string) => void
     onadd: () => void
@@ -46,6 +48,8 @@
 
   $effect(() => {
     const needle = query
+    const generation = reloadSeq
+    let cancelled = false
     const handle = setTimeout(() => {
       void (async () => {
         try {
@@ -54,15 +58,24 @@
             limit: 10_000,
             offset: 0,
           })
+          if (cancelled || generation < 0) {
+            return
+          }
           items = page.items
           total = page.total
           focused = listboxFocusIndex(page.items.length, -1, focused)
         } catch (cause) {
+          if (cancelled) {
+            return
+          }
           onerror(errorMessage(cause))
         }
       })()
     }, 30)
-    return () => clearTimeout(handle)
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
   })
 
   $effect(() => {
@@ -147,7 +160,7 @@
   }}
 />
 
-<div class="pane">
+<div class="pane" data-reload-seq={reloadSeq}>
   <div class="head">
     <h2 class="heading">Projects</h2>
     {#if oncollapse}

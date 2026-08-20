@@ -18,6 +18,7 @@ import type {
   ThemeInfo,
   ThemeAppearance,
   WrittenDocument,
+  UpdateCheck,
 } from './generated/core'
 
 type InvokeFn = (
@@ -332,6 +333,11 @@ export function openUrl(url: string): Promise<void> {
   return invokeIpc('open_url', { url })
 }
 
+/** Compares the running app to the latest GitHub Release. */
+export function updatesCheck(): Promise<UpdateCheck> {
+  return invokeIpc('updates_check')
+}
+
 /** Starts watching the active project for tree updates. */
 export function watchStart(projectId: string): Promise<void> {
   return invokeIpc('watch_start', { project_id: projectId })
@@ -406,4 +412,5 @@ export type {
   ThemeInfo,
   ThemeAppearance,
   WrittenDocument,
+  UpdateCheck,
 }

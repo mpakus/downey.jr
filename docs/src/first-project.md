@@ -1,22 +1,23 @@
-# Первый проект
+# First project
 
-Проект — это обычная папка на диске. Приложение не копирует её к себе и не
-меняет файлы при чтении.
+A project is an ordinary folder on disk. The app does not copy it and does not
+change files when you only read them.
 
-Способы открыть:
+Ways to open a folder — each **adds it to Projects** if it is not there yet:
 
-- панель проектов слева → Open Folder…
+- Projects pane → Open Folder…
 - File → Open Folder…
-- File → Open File… — регистрирует папку, в которой лежит `.md`, и открывает файл
-- перетащить папку или `.md` из Finder на окно
+- File → Open File… — registers the folder that contains the `.md` and opens
+  the file
+- Drop a folder or a `.md` from Finder onto the window
 
-Drop папки добавляет её в список проектов. Drop Markdown-файла открывает его
-и регистрирует содержащую папку. Drop на строку дерева внутри уже открытого
-проекта копирует файлы в эту папку.
+Opening the same folder again reuses the existing list entry. Dropping a
+Markdown file opens it and registers the containing folder. Dropping onto a
+tree row inside an already open project copies files into that folder.
 
-Список проектов виртуализирован: тысячи записей прокручиваются без тормозов.
-Поиск сверху панели фильтрует по имени и пути, совпадение подсвечивается.
+The project list is virtualized, so thousands of rows still scroll. The search
+field filters by name and path and highlights the match.
 
-Если папку перенесли, запись станет серой. Контекстное меню → Find Folder…
-указывает новое место. Удаление из списка убирает только запись, файлы на
-диске остаются.
+If you moved the folder, the row turns dim. Context menu → Find Folder…
+points the record at the new location. Removing a project from the list only
+removes the record; files on disk stay.

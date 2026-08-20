@@ -1,29 +1,38 @@
-# Установка
+# Install
 
-Минимальная версия macOS — 12.0 (Monterey).
+Minimum macOS version is 12.0 (Monterey), Apple Silicon or Intel.
 
-**Из исходников** (сейчас основной способ):
+**From a GitHub Release** (the usual way to try the app): download the
+universal DMG from [Releases](https://github.com/mpakus/1537paperstreet/releases).
+Builds are not Developer ID–signed yet, so Gatekeeper will block a normal
+double-click. First launch: Right-click → Open, or after copying to
+Applications:
 
-1. Установите Rust (rustup, stable), Node.js 22+ и Xcode Command Line Tools.
-2. Клонируйте репозиторий.
+```sh
+xattr -cr /Applications/1537paperstreet.app
+```
+
+**From source** (development):
+
+1. Install Rust (rustup, stable), Node.js 22+, and Xcode Command Line Tools.
+2. Clone the repository.
 3. `npm install`
-4. `cargo tauri dev` — окно разработки; `cargo tauri build` — `.app` текущей
-   архитектуры в `target/release/bundle`. Universal (arm64 + x86_64, macOS 12+):
-   `npm run tauri:build:universal` — `.app` и DMG в
-   `target/universal-apple-darwin/release/bundle`. Иконка приложения —
-   `icon.png` в корне репозитория; `npx tauri icon icon.png` записывает
-   PNG/ICNS в `crates/ps-app/icons/`.
-   Тег `v*` на GitHub собирает тот же universal DMG и публикует Release.
+4. `cargo tauri dev` — development window; `cargo tauri build` — `.app` for
+   the current architecture under `target/release/bundle`. Universal
+   (arm64 + x86_64, macOS 12+): `npm run tauri:build:universal` — `.app` and
+   DMG under `target/universal-apple-darwin/release/bundle`. The app icon is
+   `icon.png` at the repo root; `npx tauri icon icon.png` writes PNG/ICNS into
+   `crates/ps-app/icons/`. A `v*` tag on GitHub builds the same universal DMG
+   and publishes a Release.
 
-Закрытие окна (красный светофор) не завершает программу: в правой части
-строки меню macOS остаётся иконка (`icon-system.png`). Клик возвращает окно;
-Quit в меню иконки или ⌘Q выходят полностью.
+Closing the window (red traffic light) does not quit: a menu-bar icon
+(`icon-system.png`) stays on the right of the macOS menu bar. Click it to show
+the window; Quit in that menu or ⌘Q exits fully.
 
-File → About 1537paperstreet (и пункт About в меню приложения) открывает
-окно с логотипом, версией и ссылкой на [aomega.co](https://aomega.co).
+File → About 1537paperstreet (and About in the application menu) opens a sheet
+with the logo, version, and a link to [aomega.co](https://aomega.co).
+Check for Updates in that sheet and File → Check for Updates… ask GitHub
+Releases and open the download page if a newer version exists.
 
-Тестовые DMG без Developer ID macOS не запускает без обхода Gatekeeper.
-Production-релизы будут подписаны и нотаризированы; до этого сборка
-считается тестовой.
-
-Homebrew cask и автообновления появятся вместе с первой подписанной версией.
+Homebrew cask and in-app install of updates will arrive with the first signed
+build.

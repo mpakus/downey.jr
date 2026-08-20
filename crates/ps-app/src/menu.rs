@@ -206,6 +206,16 @@ const APP_ABOUT: MenuCommand = MenuCommand {
     title: "About 1537paperstreet",
     accelerator: None,
 };
+const APP_CHECK_UPDATES: MenuCommand = MenuCommand {
+    id: "app-check-updates",
+    title: "Check for Updates…",
+    accelerator: None,
+};
+const FILE_CHECK_UPDATES: MenuCommand = MenuCommand {
+    id: "file-check-updates",
+    title: "Check for Updates…",
+    accelerator: None,
+};
 
 #[cfg(test)]
 const HEADINGS: [MenuCommand; 6] = [
@@ -270,12 +280,14 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let name = &app.package_info().name;
     let settings = item(app, APP_SETTINGS)?;
     let about = item(app, APP_ABOUT)?;
+    let app_check_updates = item(app, APP_CHECK_UPDATES)?;
     let app_menu = Submenu::with_items(
         app,
         name,
         true,
         &[
             &about,
+            &app_check_updates,
             &PredefinedMenuItem::separator(app)?,
             &settings,
             &PredefinedMenuItem::separator(app)?,
@@ -304,6 +316,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         true,
         APP_ABOUT.accelerator,
     )?;
+    let file_check_updates = item(app, FILE_CHECK_UPDATES)?;
     let file_menu = Submenu::with_items(
         app,
         "File",
@@ -324,6 +337,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::close_window(app, None)?,
             &PredefinedMenuItem::separator(app)?,
+            &file_check_updates,
             &file_about,
         ],
     )?;
@@ -474,7 +488,13 @@ fn on_menu_event(app: &AppHandle, id: &str) {
 fn emits_menu_action(id: &str) -> bool {
     matches!(
         id,
-        "file-open-file" | "file-open-folder" | "app-about" | "file-about" | "file-settings"
+        "file-open-file"
+            | "file-open-folder"
+            | "app-about"
+            | "file-about"
+            | "file-settings"
+            | "app-check-updates"
+            | "file-check-updates"
     ) || plan_commands().iter().any(|command| command.id == id)
 }
 
@@ -580,8 +600,12 @@ mod tests {
     fn about_is_a_custom_menu_action() {
         assert!(emits_menu_action("app-about"));
         assert!(emits_menu_action("file-about"));
+        assert!(emits_menu_action("app-check-updates"));
+        assert!(emits_menu_action("file-check-updates"));
         assert_eq!(super::APP_ABOUT.id, "app-about");
         assert_eq!(super::APP_ABOUT.title, "About 1537paperstreet");
+        assert_eq!(super::APP_CHECK_UPDATES.title, "Check for Updates…");
+        assert_eq!(super::FILE_CHECK_UPDATES.title, "Check for Updates…");
     }
 
     #[test]

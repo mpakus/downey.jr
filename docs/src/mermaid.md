@@ -1,7 +1,7 @@
 # Mermaid
 
-Блок с языком `mermaid` рендерится в превью, когда диаграмма почти попала
-в кадр (запас 400 px). Библиотека подгружается локально, без сети.
+A `mermaid` fence renders in the preview when the diagram is nearly on screen
+(400 px margin). The library loads locally, with no network.
 
 ````markdown
 ```mermaid
@@ -11,14 +11,14 @@ graph TD
 ```
 ````
 
-Клик по диаграмме открывает модальное окно: зум колёсиком, панорама перетаскиванием,
-Copy SVG, Save PNG (нативный диалог сохранения).
+Click a diagram to open a modal: wheel zoom, drag to pan, Copy SVG, Save PNG
+(native save dialog).
 
-Если синтаксис неверный, под блоком показывается сообщение и исходник. Остальная
-страница не ломается.
+If the syntax is invalid, a message and the source appear under the block.
+The rest of the page stays intact.
 
-Готовый SVG кэшируется на диске по хешу исходника и идентификатору темы
-(`~/.1537paperstreet/cache/mermaid/`). Смена темы перерисовывает диаграмму.
+Finished SVG is cached on disk by source hash and theme id
+(`~/.1537paperstreet/cache/mermaid/`). Changing theme redraws the diagram.
 
-В Settings можно выключить Mermaid. Тогда вместо рисунка — короткое сообщение,
-что диаграммы отключены.
+Settings can turn Mermaid off. Then you get a short note that diagrams are
+disabled instead of a drawing.

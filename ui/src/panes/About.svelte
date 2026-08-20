@@ -1,15 +1,47 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+
+  import { errorMessage } from '../lib/ipc'
+  import type { UpdateCheck } from '../lib/ipc'
+
   let {
     version,
+    autocheck = false,
     onclose,
     onopen,
+    oncheck,
   }: {
     version: string
+    autocheck?: boolean
     onclose: () => void
     onopen: (url: string) => void
+    oncheck: () => Promise<UpdateCheck>
   } = $props()
 
   const site = 'https://aomega.co'
+
+  let checking = $state(false)
+  let result = $state<UpdateCheck | null>(null)
+  let checkError = $state('')
+
+  onMount(() => {
+    if (autocheck) {
+      void runCheck()
+    }
+  })
+
+  async function runCheck() {
+    checking = true
+    checkError = ''
+    result = null
+    try {
+      result = await oncheck()
+    } catch (cause) {
+      checkError = errorMessage(cause)
+    } finally {
+      checking = false
+    }
+  }
 </script>
 
 <svelte:window
@@ -27,6 +59,7 @@
     aria-modal="true"
     tabindex="-1"
     aria-label="About 1537paperstreet"
+    aria-busy={checking}
     onpointerdown={(event) => event.stopPropagation()}
   >
     <div class="logo-stripe">
@@ -45,7 +78,30 @@
         onopen(site)
       }}>{site.replace('https://', '')}</a
     >
+    {#if checking}
+      <p class="status" role="status">Checking for updates…</p>
+    {:else if checkError}
+      <p class="status" role="status">{checkError}</p>
+    {:else if result}
+      <p class="status" role="status">{result.message}</p>
+    {/if}
     <div class="actions">
+      <button type="button" disabled={checking} onclick={() => void runCheck()}>
+        Check for Updates
+      </button>
+      {#if result?.available && result.release_url}
+        <button
+          type="button"
+          onclick={() => {
+            const url = result?.release_url
+            if (url) {
+              onopen(url)
+            }
+          }}
+        >
+          Open Download
+        </button>
+      {/if}
       <button type="button" onclick={onclose}>Close</button>
     </div>
   </div>
@@ -92,6 +148,7 @@
   .blurb,
   .credit,
   a,
+  .status,
   .actions {
     justify-self: center;
     padding-inline: var(--space-5);
@@ -119,9 +176,17 @@
     font-weight: 600;
   }
 
+  .status {
+    margin: 0;
+    color: var(--fg-muted);
+    font-size: 0.8125rem;
+  }
+
   .actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: var(--space-2);
   }
 
   button {
@@ -135,7 +200,11 @@
     font-weight: 600;
   }
 
-  button:hover {
+  button:hover:not(:disabled) {
     background: var(--selection);
+  }
+
+  button:disabled {
+    opacity: 0.6;
   }
 </style>

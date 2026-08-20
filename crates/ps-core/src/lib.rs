@@ -16,6 +16,7 @@ pub mod themes;
 pub mod tree;
 pub mod typescript;
 pub mod ui_state;
+pub mod updates;
 pub mod watch;
 
 pub use error::{Error, Result};

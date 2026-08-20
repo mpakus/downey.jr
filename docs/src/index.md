@@ -1,10 +1,18 @@
 # 1537paperstreet
 
-1537paperstreet — локальный Markdown-ридер для macOS. Он работает с папками
-на диске, не требует аккаунта и не отправляет содержимое документов в сеть.
+1537paperstreet is a local Markdown reader for macOS. It works with folders on
+disk, does not require an account, and does not send document contents over the
+network.
 
-Сейчас приложение читает файлы: проекты слева, дерево по центру, превью
-справа. Встроенного редактора ещё нет. Чтобы править текст, откройте файл
-во внешнем редакторе (⌘⇧O) — дерево подхватит изменения само.
+The app reads and lightly edits files you already have: projects on the left,
+a file tree in the middle, preview on the right. Preview, Edit, and Split live
+in the bar under the title. To use another editor, Open in External Editor
+(⌘⇧O) — the tree picks up disk changes on its own.
 
-Дальше: [установка](install.md), [первый проект](first-project.md).
+![Preview of a Markdown file with syntax highlighting, the Projects list, and the file tree](../screen01.png)
+
+![Document preview with a table of contents, tabs, and a rendered architecture diagram](../screen02.png)
+
+![About 1537paperstreet, with the file tree and a Mermaid sequence diagram in the preview](../screen03.png)
+
+Next: [install](install.md), [first project](first-project.md).
