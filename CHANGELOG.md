@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-19
+
 ### Added
 
 - File → Check for Updates… (same item in the application menu) asks GitHub
@@ -13,6 +15,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   T-155.
 - Open Folder…, File → Open Folder… / Open File…, and dropping a folder onto
   the window add that folder to Projects (the same path is not listed twice).
+
+### Changed
+
+- README, CONTRIBUTING, CHANGELOG, and the user guide are English. README
+  leads with product information and three screenshots, then developer setup.
 
 ### Fixed
 
@@ -196,7 +203,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   minimized regression test.
 - ADR-001…ADR-007 and the mdBook user-guide skeleton.
 
-[Unreleased]: https://github.com/mpakus/downey.jr/compare/v0.2.1...HEAD
-[0.2.1]: https://github.com/mpakus/downey.jr/releases/tag/v0.2.1
-[0.2.0]: https://github.com/mpakus/downey.jr/releases/tag/v0.2.0
-[0.1.0]: https://github.com/mpakus/downey.jr/releases/tag/v0.1.0
+[Unreleased]: https://github.com/mpakus/1537paperstreet/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.3.0
+[0.2.1]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.2.1
+[0.2.0]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.2.0
+[0.1.0]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.1.0
