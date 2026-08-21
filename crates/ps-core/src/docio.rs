@@ -253,6 +253,48 @@ pub fn read_doc(project_root: &Path, rel_path: &Path) -> Result<LoadedDocument> 
     })
 }
 
+/// On-disk identity of a document, without decoding its text.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentStat {
+    /// Lowercase hexadecimal BLAKE3 hash of the on-disk bytes.
+    pub hash: String,
+    /// Size of the on-disk file in bytes.
+    pub size: u64,
+}
+
+/// Hashes a project document through [`fsops::resolve`] without decoding text.
+///
+/// ```
+/// use std::fs;
+/// use std::path::Path;
+/// use ps_core::docio::{read_doc, stat_doc};
+///
+/// let dir = tempfile::tempdir().unwrap();
+/// fs::write(dir.path().join("note.md"), b"hello\n").unwrap();
+/// let loaded = read_doc(dir.path(), Path::new("note.md")).unwrap();
+/// let stat = stat_doc(dir.path(), Path::new("note.md")).unwrap();
+/// assert_eq!(stat.hash, loaded.hash);
+/// assert_eq!(stat.size, loaded.size);
+/// ```
+pub fn stat_doc(project_root: &Path, rel_path: &Path) -> Result<DocumentStat> {
+    let path = fsops::resolve(project_root, rel_path)?;
+    let metadata = fs::symlink_metadata(&path)
+        .map_err(|source| Error::io("open the document", &path, source))?;
+    if metadata.is_dir() {
+        return Err(Error::UnsafePath {
+            path: rel_path.to_path_buf(),
+            reason: "folders cannot be opened as documents",
+        });
+    }
+
+    let bytes = fs::read(&path).map_err(|source| Error::io("read the document", &path, source))?;
+    Ok(DocumentStat {
+        hash: blake3::hash(&bytes).to_hex().to_string(),
+        size: u64::try_from(bytes.len()).unwrap_or(u64::MAX),
+    })
+}
+
 /// Writes a document through [`fsops::resolve`], restoring BOM, EOL, and a trailing newline.
 ///
 /// The write is skipped when the encoded buffer already matches the file. When the on-disk

@@ -36,4 +36,19 @@ describe('Projects', () => {
 
     expect(body).toContain('data-reload-seq="3"')
   })
+
+  it('accepts an optional drop handler for files from another project', () => {
+    const { body } = render(Projects, {
+      props: {
+        onopen() {},
+        onerror() {},
+        onadd() {},
+        onremoved() {},
+        oncollapse() {},
+        onfilesdrop() {},
+      },
+    })
+
+    expect(body).toContain('Projects')
+  })
 })

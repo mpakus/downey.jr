@@ -4,6 +4,7 @@ import {
   docOpen,
   docSave,
   docSource,
+  docStat,
   errorMessage,
   fsTrash,
   mermaidCacheGet,
@@ -98,6 +99,10 @@ describe('ipc helpers', () => {
         calls.push({ cmd: 'doc_source', args })
         return { text: '', eol: 'lf', bom: false, trailingNewline: true }
       },
+      doc_stat: (args) => {
+        calls.push({ cmd: 'doc_stat', args })
+        return { hash: 'abc', size: 1 }
+      },
       doc_save: (args) => {
         calls.push({ cmd: 'doc_save', args })
         return { hash: 'abc', size: 1, skipped: true }
@@ -114,6 +119,7 @@ describe('ipc helpers', () => {
     await treeExpandedGet('proj')
     await docOpen('proj', 'note.md')
     await docSource('proj', 'note.md')
+    await docStat('proj', 'note.md')
     await docSave('proj', 'note.md', 'hi\n', 'hash', {
       eol: 'lf',
       bom: false,
@@ -129,15 +135,16 @@ describe('ipc helpers', () => {
     expect(calls[1]?.args).toEqual({ project_id: 'proj' })
     expect(calls[2]?.args).toEqual({ project_id: 'proj', rel_path: 'note.md' })
     expect(calls[3]?.args).toEqual({ project_id: 'proj', rel_path: 'note.md' })
-    expect(calls[4]?.args).toEqual({
+    expect(calls[4]?.args).toEqual({ project_id: 'proj', rel_path: 'note.md' })
+    expect(calls[5]?.args).toEqual({
       project_id: 'proj',
       rel_path: 'note.md',
       text: 'hi\n',
       base_hash: 'hash',
       traits: { eol: 'lf', bom: false, trailingNewline: true },
     })
-    expect(calls[5]?.args).toEqual({ project_id: 'proj' })
-    expect(calls[6]?.args).toEqual({
+    expect(calls[6]?.args).toEqual({ project_id: 'proj' })
+    expect(calls[7]?.args).toEqual({
       project_id: 'proj',
       rel_paths: ['note.md'],
     })

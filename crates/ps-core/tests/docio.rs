@@ -378,6 +378,23 @@ fn empty_file_defaults_to_lf_without_trailing_newline() {
 }
 
 #[test]
+fn stat_matches_the_loaded_document_hash_and_size() {
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");
+    let stat = docio::stat_doc(&root, Path::new("note.md")).expect("stat");
+    assert_eq!(stat.hash, loaded.hash);
+    assert_eq!(stat.size, loaded.size);
+}
+
+#[test]
+fn stat_rejects_a_directory_and_a_path_outside_the_project() {
+    let (_temp, root) = project_file("note.md", b"hello\n");
+    fs::create_dir(root.join("chapters")).expect("folder");
+    assert!(docio::stat_doc(&root, Path::new("chapters")).is_err());
+    assert!(docio::stat_doc(&root, Path::new("../secret.md")).is_err());
+}
+
+#[test]
 fn write_doc_rejects_paths_outside_the_project() {
     let (_temp, root) = project_file("note.md", b"hello\n");
     let loaded = docio::read_doc(&root, Path::new("note.md")).expect("read");

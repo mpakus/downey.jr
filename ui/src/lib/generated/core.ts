@@ -395,6 +395,16 @@ writable: boolean,
  */
 readonlyReason: string | null, };
 
+export type DocumentStat = { 
+/**
+ * Lowercase hexadecimal BLAKE3 hash of the on-disk bytes.
+ */
+hash: string, 
+/**
+ * Size of the on-disk file in bytes.
+ */
+size: number, };
+
 export type WrittenDocument = { 
 /**
  * Lowercase hexadecimal BLAKE3 hash of the on-disk bytes.

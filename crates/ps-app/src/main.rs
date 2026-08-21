@@ -18,11 +18,11 @@ mod updates;
 mod window_chrome;
 
 use commands::{
-    config_get, config_set, copy_conflicts, doc_open, doc_save, doc_source, export_pdf,
+    config_get, config_set, copy_conflicts, doc_open, doc_save, doc_source, doc_stat, export_pdf,
     files_search, fs_copy, fs_create_file, fs_create_untitled, fs_import, fs_mkdir, fs_move,
-    fs_rename, fs_trash, mermaid_cache_get, mermaid_cache_put, open_dropped_paths, open_external,
-    open_url, projects_add, projects_list, projects_relocate, projects_remove, projects_rename,
-    reveal_in_finder, save_user_file, themes_css, themes_list, tree_expanded_get,
+    fs_rename, fs_transfer, fs_trash, mermaid_cache_get, mermaid_cache_put, open_dropped_paths,
+    open_external, open_url, projects_add, projects_list, projects_relocate, projects_remove,
+    projects_rename, reveal_in_finder, save_user_file, themes_css, themes_list, tree_expanded_get,
     tree_expanded_set, tree_read_dir, updates_check, watch_set_expanded, watch_start, watch_stop,
 };
 use fs_watch::WatchHub;
@@ -83,6 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             fs_copy,
             fs_import,
             fs_move,
+            fs_transfer,
             fs_trash,
             reveal_in_finder,
             open_external,
@@ -96,6 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             doc_open,
             doc_save,
             doc_source,
+            doc_stat,
             export_pdf,
         ])
         .build(tauri::generate_context!())?

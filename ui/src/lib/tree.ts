@@ -1,4 +1,4 @@
-import type { TreeNode } from './generated/core'
+import type { TreeNode, WatchUpdate } from './generated/core'
 
 /** One visible row in the flattened, lazily expanded file tree. */
 export type TreeRow = {
@@ -198,4 +198,60 @@ export function dropDirAtPoint(x: number, y: number): string | null {
       : parentDir(row.dataset.rel)
   }
   return null
+}
+
+/** Marker that prefixes an in-app tree drag payload. */
+export const TREE_DRAG_PREFIX = '1537paperstreet-items'
+
+/** Serializes a tree drag so another project can accept the drop. */
+export function encodeTreeDrag(projectId: string, paths: string[]): string {
+  return [TREE_DRAG_PREFIX, projectId, ...paths].join('\n')
+}
+
+/** Parses a tree drag payload, including legacy newline-separated paths. */
+export function decodeTreeDrag(
+  raw: string,
+): { projectId: string | null; paths: string[] } | null {
+  const lines = raw
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (lines.length === 0) {
+    return null
+  }
+  if (lines[0] === TREE_DRAG_PREFIX) {
+    const projectId = lines[1]
+    const paths = lines.slice(2)
+    if (!projectId || paths.length === 0) {
+      return null
+    }
+    return { projectId, paths }
+  }
+  return { projectId: null, paths: lines }
+}
+
+/** Whether a coalesced watch update may have changed `relPath`. */
+export function watchTouchesOpenFile(
+  update: WatchUpdate,
+  relPath: string,
+): boolean {
+  if ('rescanExpanded' in update) {
+    return true
+  }
+  return update.pathsChanged.paths.some(
+    (changed) =>
+      changed === relPath ||
+      relPath.startsWith(`${changed}/`) ||
+      changed.startsWith(`${relPath}/`),
+  )
+}
+
+/** Unsaved editor text that differs from the last loaded source. */
+export function isDraftDirty(
+  editorOpened: boolean,
+  source: { text: string } | null,
+  draftText: string,
+): boolean {
+  return Boolean(editorOpened && source && draftText !== source.text)
 }

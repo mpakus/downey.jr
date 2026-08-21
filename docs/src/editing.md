@@ -33,4 +33,6 @@ edits — the file is byte-for-byte the same.
 
 The editor loads CodeMirror the first time you leave Preview. Markup marks
 (`#`, `*`, `` ` ``) are faded; headings, emphasis, and links stay readable.
-Save with ⌘S or Save. An external editor is still available (⌘⇧O).
+Save with ⌘S or Save. An external editor is still available (⌘⇧O). If that
+editor (or another program) saves the open file, a dialog asks whether to
+reload it.

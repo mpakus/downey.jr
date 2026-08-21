@@ -8,11 +8,13 @@
     docOpen,
     docSave,
     docSource,
+    docStat,
     errorMessage,
     fsCopy,
     fsCreateUntitled,
     fsImport,
     fsMove,
+    fsTransfer,
     fsTrash,
     getAppVersion,
     openDroppedPaths,
@@ -42,7 +44,7 @@
   } from './lib/ipc'
   import type { MarkdownEditor } from './editor/types'
   import { applyMarkdownCommand } from './lib/markdown'
-  import { pathsFromDataTransfer, recentProjects } from './lib/open'
+  import { pathsFromDataTransfer, recentProjects, isExternalFileDrag } from './lib/open'
   import { clampPanelWidth } from './lib/panel-width'
   import {
     nextAfterClose,
@@ -58,10 +60,12 @@
   import {
     dirsToReload,
     dropDirAtPoint,
+    isDraftDirty,
     isHttpHref,
     isMarkdownPath,
     parseAssetHref,
     targetDir,
+    watchTouchesOpenFile,
   } from './lib/tree'
   import About from './panes/About.svelte'
   import ChromeToolbar from './panes/ChromeToolbar.svelte'
@@ -73,6 +77,7 @@
   import Projects from './panes/Projects.svelte'
   import QuickOpen from './panes/QuickOpen.svelte'
   import QuickSwitch from './panes/QuickSwitch.svelte'
+  import ReloadDisk from './panes/ReloadDisk.svelte'
   import Settings from './panes/Settings.svelte'
   import Tree from './panes/Tree.svelte'
 
@@ -116,7 +121,17 @@
     mode: 'copy' | 'move' | 'import'
     from: string[]
     toDir: string
+    fromProjectId?: string
+    toProjectId?: string
   } | null>(null)
+  let externalPrompt = $state<{
+    relPath: string
+    name: string
+    dirty: boolean
+    missing: boolean
+    diskHash: string | null
+  } | null>(null)
+  let ignoredExternal = $state<{ relPath: string; hash: string } | null>(null)
   let settingsOpen = $state(false)
   let aboutOpen = $state(false)
   let aboutAutocheck = $state(false)
@@ -596,13 +611,28 @@
       return
     }
     destMode = null
-    const conflicts = await copyConflicts(active.id, sources, toDir)
+    const destProjectId = active.id
+    const sourceProjectId = active.id
+    const conflicts = await copyConflicts(destProjectId, sources, toDir)
     if (conflicts.length > 0) {
-      pendingTransfer = { mode, from: sources, toDir }
+      pendingTransfer = {
+        mode,
+        from: sources,
+        toDir,
+        fromProjectId: sourceProjectId,
+        toProjectId: destProjectId,
+      }
       conflictNames = conflicts
       return
     }
-    await finishTransfer(mode, sources, toDir, 'keepBoth')
+    await finishTransfer(
+      mode,
+      sources,
+      toDir,
+      'keepBoth',
+      sourceProjectId,
+      destProjectId,
+    )
   }
 
   async function finishTransfer(
@@ -610,20 +640,76 @@
     from: string[],
     toDir: string,
     conflict: ConflictStrategy,
+    fromProjectId?: string,
+    toProjectId?: string,
   ) {
     if (!active) {
       return
     }
-    if (mode === 'copy') {
-      await fsCopy(active.id, from, toDir, conflict)
-    } else if (mode === 'move') {
-      await fsMove(active.id, from, toDir, conflict)
-    } else {
+    const destProjectId = toProjectId ?? pendingTransfer?.toProjectId ?? active.id
+    const sourceProjectId =
+      fromProjectId ?? pendingTransfer?.fromProjectId ?? active.id
+    if (mode === 'import') {
       await fsImport(active.id, from, toDir, conflict)
+    } else if (sourceProjectId !== destProjectId) {
+      await fsTransfer(
+        sourceProjectId,
+        from,
+        destProjectId,
+        toDir,
+        mode === 'copy',
+        conflict,
+      )
+      if (mode === 'move' && sourceProjectId === active.id) {
+        const openPath = openMeta?.relPath
+        if (
+          openPath &&
+          from.some(
+            (path) =>
+              openPath === path || openPath.startsWith(`${path}/`),
+          )
+        ) {
+          closeTab(openPath)
+        }
+      }
+    } else if (mode === 'copy') {
+      await fsCopy(active.id, from, toDir, conflict)
+    } else {
+      await fsMove(active.id, from, toDir, conflict)
     }
     pendingTransfer = null
     conflictNames = []
     treeReload += 1
+  }
+
+  async function transferAcross(
+    toProject: Project,
+    fromProjectId: string,
+    from: string[],
+    copy: boolean,
+  ) {
+    if (from.length === 0) {
+      return
+    }
+    if (fromProjectId === toProject.id) {
+      destMode = copy ? 'copy' : 'move'
+      await transfer(copy ? 'copy' : 'move', from, '')
+      return
+    }
+    const mode = copy ? 'copy' : 'move'
+    const conflicts = await copyConflicts(toProject.id, from, '')
+    if (conflicts.length > 0) {
+      pendingTransfer = {
+        mode,
+        from,
+        toDir: '',
+        fromProjectId,
+        toProjectId: toProject.id,
+      }
+      conflictNames = conflicts
+      return
+    }
+    await finishTransfer(mode, from, '', 'keepBoth', fromProjectId, toProject.id)
   }
 
   async function importInto(toDir: string, sources: string[]) {
@@ -677,6 +763,83 @@
       watchDirs = dirsToReload(event.update.pathsChanged.paths)
     }
     watchSeq += 1
+    if (
+      openMeta &&
+      event.projectId === openMeta.projectId &&
+      watchTouchesOpenFile(event.update, openMeta.relPath)
+    ) {
+      void checkExternalChange()
+    }
+  }
+
+  async function checkExternalChange() {
+    if (!active || !openMeta || !docMeta || externalPrompt) {
+      return
+    }
+    const projectId = active.id
+    const relPath = openMeta.relPath
+    const knownHash = docMeta.hash
+    try {
+      const stat = await docStat(projectId, relPath)
+      if (
+        !openMeta ||
+        openMeta.relPath !== relPath ||
+        active?.id !== projectId
+      ) {
+        return
+      }
+      if (stat.hash === knownHash) {
+        return
+      }
+      if (
+        ignoredExternal?.relPath === relPath &&
+        ignoredExternal.hash === stat.hash
+      ) {
+        return
+      }
+      externalPrompt = {
+        relPath,
+        name: tabTitle(relPath),
+        dirty: isDraftDirty(editorOpened, docSourceMeta, draftText),
+        missing: false,
+        diskHash: stat.hash,
+      }
+    } catch {
+      if (!openMeta || openMeta.relPath !== relPath) {
+        return
+      }
+      externalPrompt = {
+        relPath,
+        name: tabTitle(relPath),
+        dirty: isDraftDirty(editorOpened, docSourceMeta, draftText),
+        missing: true,
+        diskHash: null,
+      }
+    }
+  }
+
+  async function reloadFromDisk() {
+    const prompt = externalPrompt
+    externalPrompt = null
+    if (!prompt || !active) {
+      return
+    }
+    ignoredExternal = null
+    if (prompt.missing) {
+      closeTab(prompt.relPath)
+      return
+    }
+    await openDocument(prompt.relPath, true)
+  }
+
+  function keepDiskVersion() {
+    if (externalPrompt && !externalPrompt.missing && externalPrompt.diskHash) {
+      ignoredExternal = {
+        relPath: externalPrompt.relPath,
+        hash: externalPrompt.diskHash,
+      }
+    }
+    externalPrompt = null
   }
 
   async function loadProjects(preferredId?: string) {
@@ -759,7 +922,7 @@
     })
   }
 
-  async function openDocument(relPath: string) {
+  async function openDocument(relPath: string, forceReload = false) {
     if (!active) {
       return
     }
@@ -767,10 +930,14 @@
     if (leaving && leaving.relPath !== relPath) {
       tabs = upsertTab(tabs, leaving)
       const cached = tabs.find((tab) => tab.relPath === relPath)
-      if (cached?.docMeta) {
+      if (!forceReload && cached?.docMeta) {
         restoreTab(cached)
         return
       }
+    }
+    if (forceReload) {
+      ignoredExternal = null
+      externalPrompt = null
     }
     setSelection([fileNode(relPath)])
     try {
@@ -1042,7 +1209,9 @@
   }}
   ondragover={(event) => {
     event.preventDefault()
-    dragging = true
+    if (isExternalFileDrag(event.dataTransfer)) {
+      dragging = true
+    }
   }}
   ondragleave={(event) => {
     if (event.relatedTarget === null) {
@@ -1144,6 +1313,16 @@
             error = message
           }}
           onadd={() => void pickOpen('folder')}
+          onfilesdrop={(project, payload) => {
+            void transferAcross(
+              project,
+              payload.projectId,
+              payload.paths,
+              payload.copy,
+            ).catch((cause) => {
+              error = errorMessage(cause)
+            })
+          }}
           onremoved={() => {
             const previous = active?.id
             projectsReload += 1
@@ -1464,6 +1643,8 @@
           pending.from,
           pending.toDir,
           strategy,
+          pending.fromProjectId,
+          pending.toProjectId,
         ).catch((cause) => {
           error = errorMessage(cause)
         })
@@ -1472,6 +1653,20 @@
         pendingTransfer = null
         conflictNames = []
       }}
+    />
+  {/if}
+
+  {#if externalPrompt}
+    <ReloadDisk
+      name={externalPrompt.name}
+      dirty={externalPrompt.dirty}
+      missing={externalPrompt.missing}
+      onreload={() => {
+        void reloadFromDisk().catch((cause) => {
+          error = errorMessage(cause)
+        })
+      }}
+      onkeep={keepDiskVersion}
     />
   {/if}
 

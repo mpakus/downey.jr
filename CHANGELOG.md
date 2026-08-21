@@ -5,6 +5,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Opening a file that another program saved shows a dialog to reload it in
+  Preview or Edit. Reloading discards unsaved edits only after you confirm.
+- Drag a file from the tree onto another project in the list to move it.
+  Hold ⌥ to copy.
+
 ## [0.5.0] - 2026-08-20
 
 ### Added

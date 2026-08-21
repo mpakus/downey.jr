@@ -7,7 +7,7 @@ use crate::config::{
 };
 use crate::docio::{
     DocChunkEvent, DocDoneEvent, DocOpenResult, DocumentEncoding, DocumentMeta, DocumentSource,
-    LineEnding, RestoreTraits, TocEntry, WrittenDocument,
+    DocumentStat, LineEnding, RestoreTraits, TocEntry, WrittenDocument,
 };
 use crate::fsops::{ConflictStrategy, UntitledKind};
 use crate::projects::{OpenDropResult, Project, ProjectsListQuery, ProjectsListResult};
@@ -49,6 +49,7 @@ pub fn ipc_typescript() -> String {
         DocumentEncoding::decl(&ts),
         TocEntry::decl(&ts),
         DocumentSource::decl(&ts),
+        DocumentStat::decl(&ts),
         WrittenDocument::decl(&ts),
         DocumentMeta::decl(&ts),
         DocOpenResult::decl(&ts),

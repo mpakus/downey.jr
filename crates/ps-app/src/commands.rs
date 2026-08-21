@@ -8,7 +8,8 @@ use std::path::PathBuf;
 
 use ps_core::config::Config;
 use ps_core::docio::{
-    DocChunkEvent, DocDoneEvent, DocOpenResult, DocumentSource, RestoreTraits, WrittenDocument,
+    DocChunkEvent, DocDoneEvent, DocOpenResult, DocumentSource, DocumentStat, RestoreTraits,
+    WrittenDocument,
 };
 use ps_core::fsops::{ConflictStrategy, UntitledKind};
 use ps_core::projects::{OpenDropResult, Project, ProjectsListQuery, ProjectsListResult};
@@ -297,6 +298,25 @@ pub(crate) async fn fs_copy(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub(crate) async fn fs_transfer(
+    state: State<'_, AppState>,
+    from_project_id: String,
+    from: Vec<PathBuf>,
+    to_project_id: String,
+    to_dir: PathBuf,
+    copy: bool,
+    conflict: ConflictStrategy,
+) -> Result<Vec<TreeNode>, String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        state.fs_transfer(from_project_id, from, to_project_id, to_dir, copy, conflict)
+    })
+    .await
+    .map_err(|error| error.to_string())
+    .and_then(|result| result.map_err(to_command_error))
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub(crate) async fn fs_import(
     state: State<'_, AppState>,
     project_id: String,
@@ -349,6 +369,19 @@ pub(crate) async fn doc_source(
 ) -> Result<DocumentSource, String> {
     let state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || state.doc_source(project_id, rel_path))
+        .await
+        .map_err(|error| error.to_string())
+        .and_then(|result| result.map_err(to_command_error))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub(crate) async fn doc_stat(
+    state: State<'_, AppState>,
+    project_id: String,
+    rel_path: PathBuf,
+) -> Result<DocumentStat, String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || state.doc_stat(project_id, rel_path))
         .await
         .map_err(|error| error.to_string())
         .and_then(|result| result.map_err(to_command_error))

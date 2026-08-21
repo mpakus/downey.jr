@@ -11,7 +11,7 @@
   } from '../lib/ipc'
   import { listboxFocusIndex } from '../lib/list-focus'
   import { highlightQuery } from '../lib/text'
-  import { visibleWindow } from '../lib/tree'
+  import { decodeTreeDrag, visibleWindow } from '../lib/tree'
 
   let {
     activeId = null,
@@ -21,6 +21,7 @@
     onadd,
     onremoved,
     oncollapse,
+    onfilesdrop,
   }: {
     activeId?: string | null
     reloadSeq?: number
@@ -29,6 +30,10 @@
     onadd: () => void
     onremoved: (id: string) => void
     oncollapse?: () => void
+    onfilesdrop?: (
+      project: Project,
+      payload: { projectId: string; paths: string[]; copy: boolean },
+    ) => void
   } = $props()
 
   const ROW = 44
@@ -45,6 +50,7 @@
   let renameValue = $state('')
   let removeTarget = $state<Project | null>(null)
   let renameInput = $state<HTMLInputElement | undefined>()
+  let dropTargetId = $state<string | null>(null)
 
   $effect(() => {
     const needle = query
@@ -237,6 +243,7 @@
               class:active={project.id === activeId}
               class:focused={range.start + offset === focused}
               class:unavailable
+              class:drop={dropTargetId === project.id}
               role="option"
               aria-selected={project.id === activeId}
               onclick={() => {
@@ -246,6 +253,45 @@
               oncontextmenu={(event) => {
                 event.preventDefault()
                 menu = { x: event.clientX, y: event.clientY, project }
+              }}
+              ondragover={(event) => {
+                if (unavailable || !event.dataTransfer?.types.includes('text/plain')) {
+                  return
+                }
+                event.preventDefault()
+                event.stopPropagation()
+                if (event.dataTransfer) {
+                  event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
+                }
+                dropTargetId = project.id
+              }}
+              ondragleave={(event) => {
+                const next = event.relatedTarget
+                if (next instanceof Node && event.currentTarget.contains(next)) {
+                  return
+                }
+                if (dropTargetId === project.id) {
+                  dropTargetId = null
+                }
+              }}
+              ondrop={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                dropTargetId = null
+                if (unavailable) {
+                  return
+                }
+                const drag = decodeTreeDrag(
+                  event.dataTransfer?.getData('text/plain') ?? '',
+                )
+                if (!drag?.projectId || drag.paths.length === 0) {
+                  return
+                }
+                onfilesdrop?.(project, {
+                  projectId: drag.projectId,
+                  paths: drag.paths,
+                  copy: event.altKey,
+                })
               }}
               onkeydown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -531,6 +577,11 @@
   }
 
   .list:focus-visible .row.focused {
+    background: var(--selection);
+  }
+
+  .row.drop {
+    box-shadow: inset 0 0 0 2px var(--accent);
     background: var(--selection);
   }
 

@@ -46,3 +46,12 @@ export function pathsFromDataTransfer(transfer: DataTransfer | null): string[] {
       }
     })
 }
+
+/** Finder / OS file drags, not in-app tree items. */
+export function isExternalFileDrag(transfer: DataTransfer | null): boolean {
+  if (!transfer) {
+    return false
+  }
+  const types = [...transfer.types]
+  return types.includes('Files') || types.includes('text/uri-list')
+}

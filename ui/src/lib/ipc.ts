@@ -4,6 +4,7 @@ import type {
   DocOpenResult,
   DocumentMeta,
   DocumentSource,
+  DocumentStat,
   RestoreTraits,
   OpenDropResult,
   Project,
@@ -189,6 +190,14 @@ export function docSource(
   return invokeIpc('doc_source', { project_id: projectId, rel_path: relPath })
 }
 
+/** Hashes a document on disk without loading its text. */
+export function docStat(
+  projectId: string,
+  relPath: string,
+): Promise<DocumentStat> {
+  return invokeIpc('doc_stat', { project_id: projectId, rel_path: relPath })
+}
+
 /** Writes a document, restoring BOM, EOL, and a trailing newline. */
 export function docSave(
   projectId: string,
@@ -287,6 +296,25 @@ export function fsMove(
     project_id: projectId,
     from,
     to_dir: toDir,
+    conflict,
+  })
+}
+
+/** Copies or moves items from one project into another. */
+export function fsTransfer(
+  fromProjectId: string,
+  from: string[],
+  toProjectId: string,
+  toDir: string,
+  copy: boolean,
+  conflict: ConflictStrategy,
+): Promise<TreeNode[]> {
+  return invokeIpc('fs_transfer', {
+    from_project_id: fromProjectId,
+    from,
+    to_project_id: toProjectId,
+    to_dir: toDir,
+    copy,
     conflict,
   })
 }
@@ -398,6 +426,7 @@ export type {
   DocOpenResult,
   DocumentMeta,
   DocumentSource,
+  DocumentStat,
   RestoreTraits,
   OpenDropResult,
   Project,

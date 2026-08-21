@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Project } from './generated/core'
-import { pathsFromDataTransfer, recentProjects } from './open'
+import { isExternalFileDrag, pathsFromDataTransfer, recentProjects } from './open'
 
 function project(
   partial: Partial<Project> & Pick<Project, 'id' | 'name'>,
@@ -56,5 +56,20 @@ describe('pathsFromDataTransfer', () => {
       '/Users/me/Notes/hello.md',
       '/Users/me/Notes',
     ])
+  })
+})
+
+describe('isExternalFileDrag', () => {
+  it('ignores in-app text drags and empty transfers', () => {
+    expect(isExternalFileDrag(null)).toBe(false)
+    const internal = {
+      types: ['text/plain'],
+    } as unknown as DataTransfer
+    expect(isExternalFileDrag(internal)).toBe(false)
+  })
+
+  it('recognizes Finder file lists', () => {
+    const files = { types: ['Files'] } as unknown as DataTransfer
+    expect(isExternalFileDrag(files)).toBe(true)
   })
 })

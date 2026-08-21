@@ -31,11 +31,12 @@ Reader (current product):
 7. Context menu and File/Go: New File/Folder, Rename, Duplicate, Copy/Move
    to…, Reveal in Finder, Open in External Editor, Move to Trash.
 8. DnD inside the tree moves; ⌥ copies; drop from Finder into a tree folder
-   imports.
+   imports. Drag a file onto another project in the list to move it; ⌥ copies.
 9. Name clash: Replace / Keep Both / Skip, apply to all.
 10. ⇧/⌘ select several nodes; group Move to Trash asks for confirmation.
 11. Live tree: editing a file in Finder updates the tree without losing
-    selection.
+    selection. An open file changed in another program asks to Reload or Keep
+    this version.
 12. ⌘P opens a file inside the project; ⌘⇧P switches project; project search
     highlights the match.
 13. Unavailable project: Find Folder… relocates the record and does not

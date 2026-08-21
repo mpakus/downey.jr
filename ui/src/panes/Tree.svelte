@@ -16,6 +16,8 @@
   } from '../lib/ipc'
   import {
     ancestorDirs,
+    encodeTreeDrag,
+    decodeTreeDrag,
     fileIconKind,
     flattenTree,
     isMarkdownPath,
@@ -544,10 +546,16 @@
               openMenu(event, row.node)
             }}
             ondragstart={(event) => {
+              if (!project) {
+                return
+              }
               dragged = true
               const paths = actionNodes(row.node).map((item) => item.relPath)
               draggingPaths = paths
-              event.dataTransfer?.setData('text/plain', paths.join('\n'))
+              event.dataTransfer?.setData(
+                'text/plain',
+                encodeTreeDrag(project.id, paths),
+              )
               if (event.dataTransfer) {
                 event.dataTransfer.effectAllowed = 'copyMove'
               }
@@ -596,8 +604,10 @@
             ondrop={(event) => {
               event.preventDefault()
               dropTarget = null
-              const raw = event.dataTransfer?.getData('text/plain') ?? ''
-              const from = raw.split('\n').filter(Boolean)
+              const drag = decodeTreeDrag(
+                event.dataTransfer?.getData('text/plain') ?? '',
+              )
+              const from = drag?.paths ?? []
               const toDir = dropDir(row.node)
               if (
                 from.length === 0 ||

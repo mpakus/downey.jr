@@ -16,6 +16,11 @@ import {
   dirsToReload,
   rangeRelPaths,
   dropDirAtPoint,
+  encodeTreeDrag,
+  decodeTreeDrag,
+  watchTouchesOpenFile,
+  isDraftDirty,
+  TREE_DRAG_PREFIX,
 } from './tree'
 
 function node(relPath: string, kind: TreeNode['kind']): TreeNode {
@@ -139,5 +144,50 @@ describe('tree helpers', () => {
 
   it('returns null for drop targeting when there is no document', () => {
     expect(dropDirAtPoint(0, 0)).toBeNull()
+  })
+
+  it('encodes and decodes a tree drag that names its project', () => {
+    const raw = encodeTreeDrag('proj-a', ['notes/a.md', 'b.md'])
+    expect(raw.startsWith(TREE_DRAG_PREFIX)).toBe(true)
+    expect(decodeTreeDrag(raw)).toEqual({
+      projectId: 'proj-a',
+      paths: ['notes/a.md', 'b.md'],
+    })
+    expect(decodeTreeDrag('notes/a.md\nb.md')).toEqual({
+      projectId: null,
+      paths: ['notes/a.md', 'b.md'],
+    })
+    expect(decodeTreeDrag('')).toBeNull()
+  })
+
+  it('detects watch updates that touch the open file', () => {
+    expect(
+      watchTouchesOpenFile(
+        { pathsChanged: { paths: ['notes/a.md'] } },
+        'notes/a.md',
+      ),
+    ).toBe(true)
+    expect(
+      watchTouchesOpenFile(
+        { pathsChanged: { paths: ['notes'] } },
+        'notes/a.md',
+      ),
+    ).toBe(true)
+    expect(
+      watchTouchesOpenFile(
+        { pathsChanged: { paths: ['other.md'] } },
+        'notes/a.md',
+      ),
+    ).toBe(false)
+    expect(
+      watchTouchesOpenFile({ rescanExpanded: { paths: ['notes'] } }, 'a.md'),
+    ).toBe(true)
+  })
+
+  it('treats an editor buffer as dirty only after the source was loaded', () => {
+    expect(isDraftDirty(false, { text: 'a' }, 'b')).toBe(false)
+    expect(isDraftDirty(true, null, 'b')).toBe(false)
+    expect(isDraftDirty(true, { text: 'a' }, 'a')).toBe(false)
+    expect(isDraftDirty(true, { text: 'a' }, 'b')).toBe(true)
   })
 })

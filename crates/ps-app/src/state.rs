@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 
 use ps_core::config::Config;
 use ps_core::docio::{
-    self, DocOpenResult, DocumentMeta, DocumentSource, LoadedDocument, RestoreTraits, TocEntry,
-    WrittenDocument,
+    self, DocOpenResult, DocumentMeta, DocumentSource, DocumentStat, LoadedDocument, RestoreTraits,
+    TocEntry, WrittenDocument,
 };
 use ps_core::fsops::{self, ConflictStrategy, CopyOutcome, MoveOutcome, UntitledKind};
 use ps_core::log::FileLog;
@@ -351,6 +351,67 @@ impl AppState {
         Ok(nodes)
     }
 
+    pub(crate) fn fs_transfer(
+        &self,
+        from_project_id: String,
+        from: Vec<PathBuf>,
+        to_project_id: String,
+        to_dir: PathBuf,
+        copy: bool,
+        conflict: ConflictStrategy,
+    ) -> Result<Vec<TreeNode>> {
+        let from_root = self.project_root(&from_project_id)?;
+        let to_root = self.project_root(&to_project_id)?;
+        let from_canonical = from_root.canonicalize().map_err(|source| Error::Io {
+            action: "open the source project",
+            path: from_root.clone(),
+            source,
+        })?;
+        let to_canonical = to_root.canonicalize().map_err(|source| Error::Io {
+            action: "open the destination project",
+            path: to_root.clone(),
+            source,
+        })?;
+        if from_canonical == to_canonical {
+            return if copy {
+                self.fs_copy(to_project_id, from, to_dir, conflict)
+            } else {
+                self.fs_move(to_project_id, from, to_dir, conflict)
+            };
+        }
+
+        let mut nodes = Vec::with_capacity(from.len());
+        let mut copied = Vec::new();
+        for rel_path in from {
+            let source = fsops::resolve(&from_root, &rel_path)?;
+            let outcome = fsops::import_into(
+                &to_root,
+                &to_dir,
+                std::slice::from_ref(&source),
+                conflict,
+                pending_history_snapshot,
+                |_| {},
+            )?
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::UnsafePath {
+                path: rel_path.clone(),
+                reason: "the item could not be copied into the other project",
+            })?;
+            let absolute = match &outcome {
+                CopyOutcome::Copied { path } | CopyOutcome::Skipped { path } => path.clone(),
+            };
+            if matches!(outcome, CopyOutcome::Copied { .. }) {
+                copied.push(rel_path);
+            }
+            nodes.push(tree::node_at(&to_root, &absolute)?);
+        }
+        if !copy && !copied.is_empty() {
+            fsops::trash(&from_root, &copied, pending_history_snapshot)?;
+        }
+        Ok(nodes)
+    }
+
     pub(crate) fn fs_import(
         &self,
         project_id: String,
@@ -490,6 +551,11 @@ impl AppState {
         rel_path: PathBuf,
     ) -> Result<DocumentSource> {
         Ok(self.load_document(&project_id, &rel_path)?.source)
+    }
+
+    pub(crate) fn doc_stat(&self, project_id: String, rel_path: PathBuf) -> Result<DocumentStat> {
+        let root = self.project_root(&project_id)?;
+        docio::stat_doc(&root, &rel_path)
     }
 
     pub(crate) fn doc_save(
@@ -1171,6 +1237,81 @@ mod tests {
     }
 
     #[test]
+    fn transfers_copy_and_move_files_between_projects() {
+        let (temporary, state) = open_state();
+        let alpha_root = temporary.path().join("alpha");
+        let beta_root = temporary.path().join("beta");
+        fs::create_dir(&alpha_root).expect("alpha");
+        fs::create_dir(&beta_root).expect("beta");
+        fs::write(alpha_root.join("note.md"), b"from alpha").expect("note");
+        fs::write(alpha_root.join("keep.md"), b"stay").expect("keep");
+        fs::write(beta_root.join("note.md"), b"already here").expect("conflict");
+        let alpha = state
+            .projects_add("Alpha".into(), alpha_root.clone())
+            .expect("alpha project");
+        let beta = state
+            .projects_add("Beta".into(), beta_root.clone())
+            .expect("beta project");
+
+        let copied = state
+            .fs_transfer(
+                alpha.id.clone(),
+                vec![PathBuf::from("keep.md")],
+                beta.id.clone(),
+                PathBuf::new(),
+                true,
+                ConflictStrategy::KeepBoth,
+            )
+            .expect("copy across");
+        assert_eq!(copied[0].name, "keep.md");
+        assert_eq!(
+            fs::read(alpha_root.join("keep.md")).expect("source kept"),
+            b"stay"
+        );
+        assert_eq!(
+            fs::read(beta_root.join("keep.md")).expect("copied"),
+            b"stay"
+        );
+
+        let skipped = state
+            .fs_transfer(
+                alpha.id.clone(),
+                vec![PathBuf::from("note.md")],
+                beta.id.clone(),
+                PathBuf::new(),
+                false,
+                ConflictStrategy::Skip,
+            )
+            .expect("skip move");
+        assert_eq!(skipped[0].name, "note.md");
+        assert_eq!(
+            fs::read(alpha_root.join("note.md")).expect("source not trashed"),
+            b"from alpha"
+        );
+        assert_eq!(
+            fs::read(beta_root.join("note.md")).expect("destination unchanged"),
+            b"already here"
+        );
+
+        let moved = state
+            .fs_transfer(
+                alpha.id.clone(),
+                vec![PathBuf::from("note.md")],
+                beta.id.clone(),
+                PathBuf::new(),
+                false,
+                ConflictStrategy::KeepBoth,
+            )
+            .expect("move across");
+        assert_eq!(moved[0].name, "note 2.md");
+        assert!(!alpha_root.join("note.md").exists());
+        assert_eq!(
+            fs::read(beta_root.join("note 2.md")).expect("moved"),
+            b"from alpha"
+        );
+    }
+
+    #[test]
     fn document_commands_read_source_and_return_the_first_chunk() {
         let (temporary, state) = open_state();
         let project_root = temporary.path().join("notes");
@@ -1185,6 +1326,15 @@ mod tests {
             .expect("source");
         assert_eq!(source.text, "# Hello\n\nParagraph.\n");
         assert!(source.writable);
+
+        let stat = state
+            .doc_stat(project.id.clone(), PathBuf::from("readme.md"))
+            .expect("stat");
+        assert_eq!(
+            stat.size,
+            u64::try_from(b"# Hello\n\nParagraph.\n".len()).unwrap()
+        );
+        assert_eq!(stat.hash.len(), 64);
         assert!(source.trailing_newline);
 
         let opened = state

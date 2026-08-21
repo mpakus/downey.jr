@@ -23,7 +23,8 @@ Tree context menu and File / Go:
 | Move to Trash | ⌘⌫, with confirmation |
 
 Drag inside the tree moves a file. Hold ⌥ while dropping to copy. Drop from
-Finder into a tree folder copies files into the project.
+Finder into a tree folder copies files into the project. Drag a file onto
+another project in the Projects list to move it there; hold ⌥ to copy.
 
 ⇧ and ⌘ select several nodes for group copy, move, duplicate, and trash.
 
