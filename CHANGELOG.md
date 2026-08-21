@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-20
+
 ### Added
 
 - Edit and Split load CodeMirror on first use and highlight Markdown source:
@@ -217,7 +219,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   minimized regression test.
 - ADR-001…ADR-007 and the mdBook user-guide skeleton.
 
-[Unreleased]: https://github.com/mpakus/1537paperstreet/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/mpakus/1537paperstreet/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.5.0
 [0.3.0]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.3.0
 [0.2.1]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mpakus/1537paperstreet/releases/tag/v0.2.0

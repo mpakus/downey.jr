@@ -178,8 +178,8 @@ jobs:
               --notes-file notes.md \
               "$DMG" \
               "$ZIP"
+          fi
 
       - name: Remove App Store Connect API key
         if: always()
         run: rm -f "$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
-          fi
