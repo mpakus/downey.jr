@@ -11,7 +11,7 @@
   } from '../lib/ipc'
   import { listboxFocusIndex } from '../lib/list-focus'
   import { highlightQuery } from '../lib/text'
-  import { decodeTreeDrag, visibleWindow } from '../lib/tree'
+  import { isTreeDrag, resolveTreeDrag, visibleWindow } from '../lib/tree'
 
   let {
     activeId = null,
@@ -51,6 +51,54 @@
   let removeTarget = $state<Project | null>(null)
   let renameInput = $state<HTMLInputElement | undefined>()
   let dropTargetId = $state<string | null>(null)
+
+  function projectFromEvent(event: DragEvent): Project | null {
+    const el = event.target
+    if (!(el instanceof Element)) {
+      return null
+    }
+    const id = el.closest('[data-project-id]')?.getAttribute('data-project-id')
+    if (!id) {
+      return null
+    }
+    return items.find((project) => project.id === id) ?? null
+  }
+
+  function allowTreeDrop(event: DragEvent) {
+    if (!isTreeDrag(event.dataTransfer)) {
+      return false
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
+    }
+    const hovered = projectFromEvent(event)
+    dropTargetId = hovered && hovered.available !== false ? hovered.id : null
+    return true
+  }
+
+  function dropOnProject(event: DragEvent) {
+    if (!isTreeDrag(event.dataTransfer)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    const project = projectFromEvent(event) ?? items.find((item) => item.id === dropTargetId) ?? null
+    dropTargetId = null
+    if (!project || project.available === false) {
+      return
+    }
+    const drag = resolveTreeDrag(event.dataTransfer)
+    if (!drag || drag.paths.length === 0) {
+      return
+    }
+    onfilesdrop?.(project, {
+      projectId: drag.projectId,
+      paths: drag.paths,
+      copy: event.altKey,
+    })
+  }
 
   $effect(() => {
     const needle = query
@@ -208,6 +256,16 @@
     onscroll={(event) => {
       scrollTop = event.currentTarget.scrollTop
     }}
+    ondragover={allowTreeDrop}
+    ondragenter={allowTreeDrop}
+    ondragleave={(event) => {
+      const next = event.relatedTarget
+      if (next instanceof Node && event.currentTarget.contains(next)) {
+        return
+      }
+      dropTargetId = null
+    }}
+    ondrop={dropOnProject}
     onkeydown={(event) => {
       if (event.key === 'ArrowDown') {
         event.preventDefault()
@@ -244,6 +302,7 @@
               class:focused={range.start + offset === focused}
               class:unavailable
               class:drop={dropTargetId === project.id}
+              data-project-id={project.id}
               role="option"
               aria-selected={project.id === activeId}
               onclick={() => {
@@ -253,45 +312,6 @@
               oncontextmenu={(event) => {
                 event.preventDefault()
                 menu = { x: event.clientX, y: event.clientY, project }
-              }}
-              ondragover={(event) => {
-                if (unavailable || !event.dataTransfer?.types.includes('text/plain')) {
-                  return
-                }
-                event.preventDefault()
-                event.stopPropagation()
-                if (event.dataTransfer) {
-                  event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
-                }
-                dropTargetId = project.id
-              }}
-              ondragleave={(event) => {
-                const next = event.relatedTarget
-                if (next instanceof Node && event.currentTarget.contains(next)) {
-                  return
-                }
-                if (dropTargetId === project.id) {
-                  dropTargetId = null
-                }
-              }}
-              ondrop={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                dropTargetId = null
-                if (unavailable) {
-                  return
-                }
-                const drag = decodeTreeDrag(
-                  event.dataTransfer?.getData('text/plain') ?? '',
-                )
-                if (!drag?.projectId || drag.paths.length === 0) {
-                  return
-                }
-                onfilesdrop?.(project, {
-                  projectId: drag.projectId,
-                  paths: drag.paths,
-                  copy: event.altKey,
-                })
               }}
               onkeydown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -543,6 +563,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
+    -webkit-app-region: no-drag;
   }
 
   .empty,
@@ -569,6 +590,7 @@
     height: 44px;
     padding: 0 var(--space-3);
     min-width: 0;
+    -webkit-app-region: no-drag;
   }
 
   .row.active,

@@ -203,6 +203,29 @@ export function dropDirAtPoint(x: number, y: number): string | null {
 /** Marker that prefixes an in-app tree drag payload. */
 export const TREE_DRAG_PREFIX = '1537paperstreet-items'
 
+/** In-app tree items being dragged, including their source project. */
+export type TreeDragPayload = {
+  projectId: string
+  paths: string[]
+}
+
+let activeTreeDrag: TreeDragPayload | null = null
+
+/** Records a tree drag so another pane can accept it if `dataTransfer` is empty. */
+export function beginTreeDrag(projectId: string, paths: string[]): void {
+  activeTreeDrag = { projectId, paths }
+}
+
+/** The in-flight tree drag, if any. */
+export function peekTreeDrag(): TreeDragPayload | null {
+  return activeTreeDrag
+}
+
+/** Clears the in-flight tree drag. Call from `dragend`. */
+export function clearTreeDrag(): void {
+  activeTreeDrag = null
+}
+
 /** Serializes a tree drag so another project can accept the drop. */
 export function encodeTreeDrag(projectId: string, paths: string[]): string {
   return [TREE_DRAG_PREFIX, projectId, ...paths].join('\n')
@@ -229,6 +252,50 @@ export function decodeTreeDrag(
     return { projectId, paths }
   }
   return { projectId: null, paths: lines }
+}
+
+/** Whether `transfer.types` lists `type` (DOMStringList or string array). */
+export function dataTransferHasType(
+  transfer: DataTransfer | null,
+  type: string,
+): boolean {
+  if (!transfer) {
+    return false
+  }
+  const types = transfer.types as unknown as {
+    contains?: (name: string) => boolean
+    includes?: (name: string) => boolean
+    length: number
+    [index: number]: string
+  }
+  if (typeof types.contains === 'function') {
+    return types.contains(type)
+  }
+  if (typeof types.includes === 'function') {
+    return types.includes(type)
+  }
+  return Array.from({ length: types.length }, (_, index) => types[index]).includes(
+    type,
+  )
+}
+
+/** True when this drag is an in-app tree item. */
+export function isTreeDrag(transfer: DataTransfer | null): boolean {
+  return activeTreeDrag !== null || dataTransferHasType(transfer, 'text/plain')
+}
+
+/** In-memory payload first, then `text/plain`, so WKWebView drops still work. */
+export function resolveTreeDrag(
+  transfer: DataTransfer | null,
+): TreeDragPayload | null {
+  if (activeTreeDrag && activeTreeDrag.paths.length > 0) {
+    return activeTreeDrag
+  }
+  const parsed = decodeTreeDrag(transfer?.getData('text/plain') ?? '')
+  if (!parsed?.projectId || parsed.paths.length === 0) {
+    return null
+  }
+  return { projectId: parsed.projectId, paths: parsed.paths }
 }
 
 /** Whether a coalesced watch update may have changed `relPath`. */

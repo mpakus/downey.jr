@@ -18,6 +18,12 @@ import {
   dropDirAtPoint,
   encodeTreeDrag,
   decodeTreeDrag,
+  beginTreeDrag,
+  peekTreeDrag,
+  clearTreeDrag,
+  isTreeDrag,
+  resolveTreeDrag,
+  dataTransferHasType,
   watchTouchesOpenFile,
   isDraftDirty,
   TREE_DRAG_PREFIX,
@@ -158,6 +164,35 @@ describe('tree helpers', () => {
       paths: ['notes/a.md', 'b.md'],
     })
     expect(decodeTreeDrag('')).toBeNull()
+  })
+
+  it('keeps an in-memory tree drag when dataTransfer is empty', () => {
+    clearTreeDrag()
+    beginTreeDrag('proj-a', ['notes/a.md'])
+    expect(peekTreeDrag()).toEqual({
+      projectId: 'proj-a',
+      paths: ['notes/a.md'],
+    })
+    expect(isTreeDrag(null)).toBe(true)
+    expect(resolveTreeDrag(null)).toEqual({
+      projectId: 'proj-a',
+      paths: ['notes/a.md'],
+    })
+    clearTreeDrag()
+    expect(peekTreeDrag()).toBeNull()
+    expect(isTreeDrag(null)).toBe(false)
+  })
+
+  it('reads text/plain from either includes or contains type lists', () => {
+    const asArray = {
+      types: ['text/plain'],
+    } as unknown as DataTransfer
+    expect(dataTransferHasType(asArray, 'text/plain')).toBe(true)
+    const asDomList = {
+      types: { contains: (name: string) => name === 'text/plain', length: 1 },
+    } as unknown as DataTransfer
+    expect(dataTransferHasType(asDomList, 'text/plain')).toBe(true)
+    expect(dataTransferHasType(null, 'text/plain')).toBe(false)
   })
 
   it('detects watch updates that touch the open file', () => {

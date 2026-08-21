@@ -64,6 +64,7 @@
     isHttpHref,
     isMarkdownPath,
     parseAssetHref,
+    peekTreeDrag,
     targetDir,
     watchTouchesOpenFile,
   } from './lib/tree'
@@ -1220,6 +1221,10 @@
   }}
   ondrop={(event) => {
     event.preventDefault()
+    if (peekTreeDrag()) {
+      dragging = false
+      return
+    }
     const paths = pathsFromDataTransfer(event.dataTransfer)
     if (paths.length === 0) {
       dragging = false
@@ -1735,6 +1740,7 @@
 
   .projects-pane {
     width: var(--sidebar-w);
+    -webkit-app-region: no-drag;
   }
 
   .projects-rail {

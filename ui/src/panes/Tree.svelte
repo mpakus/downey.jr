@@ -16,11 +16,14 @@
   } from '../lib/ipc'
   import {
     ancestorDirs,
-    encodeTreeDrag,
+    beginTreeDrag,
+    clearTreeDrag,
     decodeTreeDrag,
+    encodeTreeDrag,
     fileIconKind,
     flattenTree,
     isMarkdownPath,
+    isTreeDrag,
     joinRel,
     parentDir,
     rangeRelPaths,
@@ -552,6 +555,7 @@
               dragged = true
               const paths = actionNodes(row.node).map((item) => item.relPath)
               draggingPaths = paths
+              beginTreeDrag(project.id, paths)
               event.dataTransfer?.setData(
                 'text/plain',
                 encodeTreeDrag(project.id, paths),
@@ -563,11 +567,11 @@
             ondragend={() => {
               dropTarget = null
               draggingPaths = []
+              clearTreeDrag()
               clearExpandTimer()
             }}
             ondragover={(event) => {
-              const from = event.dataTransfer?.types.includes('text/plain')
-              if (!from) {
+              if (!isTreeDrag(event.dataTransfer)) {
                 return
               }
               event.preventDefault()
@@ -577,7 +581,7 @@
               dropTarget = row.node.relPath
             }}
             ondragenter={(event) => {
-              if (!event.dataTransfer?.types.includes('text/plain')) {
+              if (!isTreeDrag(event.dataTransfer)) {
                 return
               }
               event.preventDefault()
