@@ -4,7 +4,7 @@ Open a Markdown file in the tree. The bar under the title shows what you can
 do with the document:
 
 - **Preview** — reading (⌘E toggles from the editor)
-- **Edit** — source in a text field (⌘E)
+- **Edit** — Markdown source with syntax highlighting (⌘E)
 - **Split** — preview and source side by side (⌘⇧E); drag the divider to
   change editor width (stored as `window.editor_w`).
 - **Save** — write the file (⌘S); the button is disabled until a file is open
@@ -23,12 +23,14 @@ footnotes, alerts (`> [!NOTE]`), definition lists. YAML front matter at the
 top of the file (`---` … `---`) shows as a key/value card, not as horizontal
 rules. `[[Note]]` and `[[Note|label]]` open `Note.md` in the project (next to
 the document or at the root); missing links are drawn dashed. Fenced code is
-highlighted (Rust, Python, Ruby, Elixir, YAML, JS/TS, and others).
+highlighted (Rust, Python, Ruby, Elixir, YAML, JS/TS, and others) with
+quiet colors mixed into the body text.
 
 `write_doc` restores BOM, line endings, and a trailing newline atomically,
 skips the write when the encoded bytes already match disk, and does not
 overwrite when `base_hash` disagrees with the file. Open and save with no
 edits — the file is byte-for-byte the same.
 
-Autosave after 800 ms idle and CodeMirror are later P9 work. For now save
-with ⌘S or Save. An external editor is still available (⌘⇧O).
+The editor loads CodeMirror the first time you leave Preview. Markup marks
+(`#`, `*`, `` ` ``) are faded; headings, emphasis, and links stay readable.
+Save with ⌘S or Save. An external editor is still available (⌘⇧O).

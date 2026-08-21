@@ -1,18 +1,27 @@
+.preview pre.code,
+.preview pre.code code {
+  color: var(--fg);
+  line-height: 1.55;
+}
+
 .preview .syntax-comment,
 .preview .syntax-punctuation.syntax-definition.syntax-comment {
   color: var(--hl-com);
+  font-style: italic;
 }
 
 .preview .syntax-string,
 .preview .syntax-constant.syntax-other.syntax-symbol,
 .preview .syntax-string.syntax-quoted {
   color: var(--hl-str);
+  color: color-mix(in srgb, var(--hl-str) 32%, var(--fg));
 }
 
 .preview .syntax-constant.syntax-numeric,
 .preview .syntax-constant.syntax-language,
 .preview .syntax-constant.syntax-other {
   color: var(--hl-num);
+  color: color-mix(in srgb, var(--hl-num) 32%, var(--fg));
 }
 
 .preview .syntax-keyword,
@@ -21,11 +30,13 @@
 .preview .syntax-keyword.syntax-operator,
 .preview .syntax-keyword.syntax-control {
   color: var(--hl-kw);
+  color: color-mix(in srgb, var(--hl-kw) 32%, var(--fg));
 }
 
 .preview .syntax-entity.syntax-name.syntax-function,
 .preview .syntax-support.syntax-function {
   color: var(--hl-fn);
+  color: color-mix(in srgb, var(--hl-fn) 32%, var(--fg));
 }
 
 .preview .syntax-entity.syntax-name.syntax-class,
@@ -33,6 +44,7 @@
 .preview .syntax-support.syntax-type,
 .preview .syntax-entity.syntax-other.syntax-inherited-class {
   color: var(--hl-type);
+  color: color-mix(in srgb, var(--hl-type) 32%, var(--fg));
 }
 
 .preview .syntax-variable,

@@ -5,8 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Edit and Split load CodeMirror on first use and highlight Markdown source:
+  markup marks fade to `--ed-syntax`, headings stay bold, links use the
+  accent, and fenced/inline code uses the monospace font.
+
 ### Changed
 
+- Preview code highlighting mixes token colors into the body text so fenced
+  blocks stay readable. Paper Light/Dark highlight tokens are quieter.
 - macOS tag releases now require Developer ID credentials, hardened-runtime
   signing, Apple notarization, stapled tickets, and Gatekeeper checks for both
   the universal app and DMG. The workflow refuses to publish unsigned builds.

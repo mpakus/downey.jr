@@ -42,7 +42,11 @@ PLAN § 6 entry; Vite bundles it at build time. There is no CDN at runtime.
 Fenced code blocks are highlighted in Rust with `syntect` (`regex-fancy`) and
 the extra dumped syntax set from [`two-face`](https://github.com/CosmicHorrorDev/two-face)
 (MIT/Apache-2.0), which adds Elixir and other languages missing from syntect's
-defaults. Token colors come from theme CSS variables (`--hl-*`).
+defaults. Token colors come from theme CSS variables (`--hl-*`) mixed toward
+body text so the preview stays readable.
+
+The Markdown source editor uses [CodeMirror 6](https://codemirror.net/) (MIT),
+loaded with a dynamic import the first time Edit or Split is opened.
 
 ## Icons
 

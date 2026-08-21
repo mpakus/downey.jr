@@ -4,6 +4,7 @@ import './chunks.css'
 import './styles/app.css'
 import './styles/tokens/tokens.css'
 import './styles/syntax.css'
+import './styles/editor.css'
 import './styles/gfm.css'
 
 mount(App, {

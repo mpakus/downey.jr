@@ -40,6 +40,7 @@
     type UntitledKind,
     type ViewMode,
   } from './lib/ipc'
+  import type { MarkdownEditor } from './editor/types'
   import { applyMarkdownCommand } from './lib/markdown'
   import { pathsFromDataTransfer, recentProjects } from './lib/open'
   import { clampPanelWidth } from './lib/panel-width'
@@ -96,9 +97,10 @@
   let workspaceEl = $state<HTMLDivElement | undefined>()
   let treeHidden = $state(false)
   let viewMode = $state<ViewMode>('preview')
+  let editorOpened = $state(false)
   let draftText = $state('')
   let docSourceMeta = $state<DocumentSource | null>(null)
-  let editorEl = $state<HTMLTextAreaElement | undefined>()
+  let editorApi = $state<MarkdownEditor | null>(null)
   let tabs = $state<DocTab[]>([])
   let switchOpen = $state(false)
   let themeInfos = $state<ThemeInfo[]>([])
@@ -699,6 +701,9 @@
 
   async function setViewMode(next: ViewMode) {
     viewMode = next
+    if (next !== 'preview') {
+      editorOpened = true
+    }
     if (next !== 'preview' && openMeta && !docSourceMeta) {
       await loadSource(openMeta.relPath)
     }
@@ -743,14 +748,14 @@
     if (!docSourceMeta) {
       await loadSource(openMeta.relPath)
     }
-    const el = editorEl
-    const start = el?.selectionStart ?? draftText.length
-    const end = el?.selectionEnd ?? draftText.length
+    const range = editorApi?.selection()
+    const start = range?.start ?? draftText.length
+    const end = range?.end ?? draftText.length
     const next = applyMarkdownCommand(draftText, start, end, id)
     draftText = next.text
+    editorApi?.setTextAndSelection(next.text, next.start, next.end)
     requestAnimationFrame(() => {
-      editorEl?.focus()
-      editorEl?.setSelectionRange(next.start, next.end)
+      editorApi?.focus()
     })
   }
 
@@ -907,6 +912,9 @@
         appVersion = version
         applyConfig(config)
         viewMode = config.viewer.default_mode
+        if (viewMode !== 'preview') {
+          editorOpened = true
+        }
         await loadProjects()
         if (active) {
           await activateProject(active)
@@ -1270,12 +1278,16 @@
             onclose={() => (findOpen = false)}
           />
         {/if}
-        {#if viewMode !== 'preview'}
+        {#if editorOpened}
           <Editor
             bind:value={draftText}
-            bind:textareaEl={editorEl}
+            bind:api={editorApi}
             writable={docSourceMeta?.writable ?? false}
             spellcheck={appConfig?.editor.spellcheck ?? true}
+            lineNumbers={appConfig?.editor.line_numbers ?? false}
+            softWrap={appConfig?.editor.soft_wrap ?? true}
+            indentUnit={appConfig?.editor.indent_unit ?? 2}
+            hidden={viewMode === 'preview'}
           />
         {/if}
         {#if viewMode === 'split'}

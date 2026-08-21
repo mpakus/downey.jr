@@ -1,26 +1,89 @@
 <script lang="ts">
+  import type { MarkdownEditor } from '../editor/types'
+
   let {
     value = $bindable(''),
+    api = $bindable(null),
     writable = true,
     spellcheck = true,
-    textareaEl = $bindable(),
+    lineNumbers = false,
+    softWrap = true,
+    indentUnit = 2,
+    hidden = false,
   }: {
     value: string
+    api?: MarkdownEditor | null
     writable?: boolean
     spellcheck?: boolean
-    textareaEl?: HTMLTextAreaElement | undefined
+    lineNumbers?: boolean
+    softWrap?: boolean
+    indentUnit?: number
+    hidden?: boolean
   } = $props()
+
+  let host = $state<HTMLDivElement | undefined>()
+
+  $effect(() => {
+    const el = host
+    if (!el) {
+      return
+    }
+    let cancelled = false
+    let instance: MarkdownEditor | undefined
+
+    void import('../editor/setup').then(({ createMarkdownEditor }) => {
+      if (cancelled) {
+        return
+      }
+      instance = createMarkdownEditor(el, {
+        doc: value,
+        writable,
+        spellcheck,
+        lineNumbers,
+        softWrap,
+        indentUnit,
+        onChange(text) {
+          value = text
+        },
+      })
+      api = instance
+    })
+
+    return () => {
+      cancelled = true
+      instance?.destroy()
+      api = null
+    }
+  })
+
+  $effect(() => {
+    api?.setDoc(value)
+  })
+  $effect(() => {
+    api?.setWritable(writable)
+  })
+  $effect(() => {
+    api?.setSpellcheck(spellcheck)
+  })
+  $effect(() => {
+    api?.setLineNumbers(lineNumbers)
+  })
+  $effect(() => {
+    api?.setSoftWrap(softWrap)
+  })
+  $effect(() => {
+    api?.setIndentUnit(indentUnit)
+  })
+  $effect(() => {
+    if (!hidden) {
+      api?.refresh()
+    }
+  })
 </script>
 
-<label class="editor">
-  <span class="sr">Markdown source</span>
-  <textarea
-    bind:this={textareaEl}
-    bind:value
-    readonly={!writable}
-    {spellcheck}
-    aria-label="Markdown source"></textarea>
-</label>
+<div class="editor" class:is-hidden={hidden}>
+  <div bind:this={host} class="cm-host"></div>
+</div>
 
 <style>
   .editor {
@@ -31,32 +94,20 @@
     overflow: hidden;
   }
 
-  .sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
+  .editor.is-hidden {
+    display: none;
   }
 
-  textarea {
+  .cm-host {
+    display: flex;
     flex: 1;
     min-width: 0;
     min-height: 0;
-    width: 100%;
-    resize: none;
-    border: 0;
-    padding: var(--space-6) var(--space-4);
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--font-body);
-    font-size: var(--font-size);
-    line-height: var(--line-height);
-    max-width: none;
-    tab-size: 2;
   }
 
-  textarea:focus-visible {
-    outline: none;
+  .cm-host :global(.cm-editor) {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
   }
 </style>
