@@ -12,6 +12,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Drag a file from the tree onto another project in the list to move it.
   Hold ⌥ to copy.
 
+### Fixed
+
+- Dragging a tree file onto a project no longer shows the Finder drop overlay
+  or re-opens the same file. The drop is applied to the project under the
+  pointer.
+
 ## [0.5.0] - 2026-08-20
 
 ### Added

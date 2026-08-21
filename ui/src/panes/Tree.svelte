@@ -567,8 +567,10 @@
             ondragend={() => {
               dropTarget = null
               draggingPaths = []
-              clearTreeDrag()
               clearExpandTimer()
+              window.setTimeout(() => {
+                clearTreeDrag()
+              }, 100)
             }}
             ondragover={(event) => {
               if (!isTreeDrag(event.dataTransfer)) {

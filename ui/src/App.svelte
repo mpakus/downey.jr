@@ -65,6 +65,9 @@
     isMarkdownPath,
     parseAssetHref,
     peekTreeDrag,
+    peekTreeDragCopy,
+    projectIdAtPoint,
+    claimTreeDrop,
     targetDir,
     watchTouchesOpenFile,
   } from './lib/tree'
@@ -88,6 +91,7 @@
   let selectedRelPaths = $state<string[]>([])
   let selectedNodes = $state<TreeNode[]>([])
   let finderDropRel = $state<string | null>(null)
+  let projectDropId = $state<string | null>(null)
   let docMissing = $state(false)
   let projectsHidden = $state(false)
   let revealRelPath = $state<string | null>(null)
@@ -692,6 +696,9 @@
     if (from.length === 0) {
       return
     }
+    if (!claimTreeDrop(toProject.id, from)) {
+      return
+    }
     if (fromProjectId === toProject.id) {
       destMode = copy ? 'copy' : 'move'
       await transfer(copy ? 'copy' : 'move', from, '')
@@ -1025,6 +1032,7 @@
   ) {
     dragging = false
     finderDropRel = null
+    projectDropId = null
     try {
       const dest = active
         ? dropDirAtPoint(position?.x ?? -1, position?.y ?? -1)
@@ -1038,6 +1046,23 @@
     } catch (cause) {
       error = errorMessage(cause)
     }
+  }
+
+  function dropTreeOnProject(destId: string | null, copy: boolean): boolean {
+    const drag = peekTreeDrag()
+    if (!drag || !destId) {
+      return false
+    }
+    const dest = projects.find((project) => project.id === destId)
+    if (!dest || dest.available === false) {
+      return false
+    }
+    void transferAcross(dest, drag.projectId, drag.paths, copy).catch(
+      (cause) => {
+        error = errorMessage(cause)
+      },
+    )
+    return true
   }
 
   function appendChunk(payload: {
@@ -1129,10 +1154,21 @@
         getCurrentWebview().onDragDropEvent((event) => {
           const position =
             'position' in event.payload ? event.payload.position : undefined
+          const treeDrag = peekTreeDrag()
           switch (event.payload.type) {
             case 'enter':
             case 'over':
+              if (treeDrag) {
+                dragging = false
+                finderDropRel = null
+                projectDropId = projectIdAtPoint(
+                  position?.x ?? -1,
+                  position?.y ?? -1,
+                )
+                break
+              }
               dragging = true
+              projectDropId = null
               finderDropRel = active
                 ? dropDirAtPoint(position?.x ?? -1, position?.y ?? -1)
                 : null
@@ -1140,13 +1176,25 @@
             case 'leave':
               dragging = false
               finderDropRel = null
+              projectDropId = null
               break
             case 'drop':
+              if (treeDrag) {
+                dragging = false
+                finderDropRel = null
+                const destId =
+                  projectIdAtPoint(position?.x ?? -1, position?.y ?? -1) ??
+                  projectDropId
+                projectDropId = null
+                dropTreeOnProject(destId, peekTreeDragCopy())
+                break
+              }
               void handleDrop(event.payload.paths, position)
               break
             default:
               dragging = false
               finderDropRel = null
+              projectDropId = null
           }
         }),
       )
@@ -1210,6 +1258,10 @@
   }}
   ondragover={(event) => {
     event.preventDefault()
+    if (peekTreeDrag()) {
+      projectDropId = projectIdAtPoint(event.clientX, event.clientY)
+      return
+    }
     if (isExternalFileDrag(event.dataTransfer)) {
       dragging = true
     }
@@ -1223,6 +1275,10 @@
     event.preventDefault()
     if (peekTreeDrag()) {
       dragging = false
+      const destId =
+        projectIdAtPoint(event.clientX, event.clientY) ?? projectDropId
+      projectDropId = null
+      dropTreeOnProject(destId, event.altKey)
       return
     }
     const paths = pathsFromDataTransfer(event.dataTransfer)
@@ -1308,6 +1364,7 @@
         <Projects
           activeId={active?.id ?? null}
           reloadSeq={projectsReload}
+          externalDropId={projectDropId}
           oncollapse={() => (projectsHidden = true)}
           onopen={(project) => {
             void activateProject(project).catch((cause) => {

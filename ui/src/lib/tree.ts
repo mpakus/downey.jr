@@ -200,6 +200,22 @@ export function dropDirAtPoint(x: number, y: number): string | null {
   return null
 }
 
+/** Project row under a pointer, or `null` when the pointer is not over Projects. */
+export function projectIdAtPoint(x: number, y: number): string | null {
+  if (typeof document === 'undefined') {
+    return null
+  }
+  const el = document.elementFromPoint(x, y)
+  if (!(el instanceof Element)) {
+    return null
+  }
+  const row = el.closest('[data-project-id]')
+  if (row instanceof HTMLElement && row.dataset.projectId) {
+    return row.dataset.projectId
+  }
+  return null
+}
+
 /** Marker that prefixes an in-app tree drag payload. */
 export const TREE_DRAG_PREFIX = '1537paperstreet-items'
 
@@ -210,10 +226,14 @@ export type TreeDragPayload = {
 }
 
 let activeTreeDrag: TreeDragPayload | null = null
+let treeDragCopy = false
+let lastTreeDropKey = ''
+let lastTreeDropAt = 0
 
 /** Records a tree drag so another pane can accept it if `dataTransfer` is empty. */
 export function beginTreeDrag(projectId: string, paths: string[]): void {
   activeTreeDrag = { projectId, paths }
+  treeDragCopy = false
 }
 
 /** The in-flight tree drag, if any. */
@@ -221,9 +241,32 @@ export function peekTreeDrag(): TreeDragPayload | null {
   return activeTreeDrag
 }
 
+/** Whether the current tree drag should copy (⌥) instead of move. */
+export function peekTreeDragCopy(): boolean {
+  return treeDragCopy
+}
+
+/** Updates copy vs move from the latest dragover modifiers. */
+export function setTreeDragCopy(copy: boolean): void {
+  treeDragCopy = copy
+}
+
 /** Clears the in-flight tree drag. Call from `dragend`. */
 export function clearTreeDrag(): void {
   activeTreeDrag = null
+  treeDragCopy = false
+}
+
+/** True when the same tree drop was already applied in this event burst. */
+export function claimTreeDrop(projectId: string, paths: string[]): boolean {
+  const key = `${projectId}:${paths.join('\n')}`
+  const now = Date.now()
+  if (lastTreeDropKey === key && now - lastTreeDropAt < 800) {
+    return false
+  }
+  lastTreeDropKey = key
+  lastTreeDropAt = now
+  return true
 }
 
 /** Serializes a tree drag so another project can accept the drop. */

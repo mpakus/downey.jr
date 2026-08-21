@@ -11,7 +11,7 @@
   } from '../lib/ipc'
   import { listboxFocusIndex } from '../lib/list-focus'
   import { highlightQuery } from '../lib/text'
-  import { isTreeDrag, resolveTreeDrag, visibleWindow } from '../lib/tree'
+  import { isTreeDrag, resolveTreeDrag, setTreeDragCopy, visibleWindow } from '../lib/tree'
 
   let {
     activeId = null,
@@ -22,6 +22,7 @@
     onremoved,
     oncollapse,
     onfilesdrop,
+    externalDropId = null,
   }: {
     activeId?: string | null
     reloadSeq?: number
@@ -34,6 +35,7 @@
       project: Project,
       payload: { projectId: string; paths: string[]; copy: boolean },
     ) => void
+    externalDropId?: string | null
   } = $props()
 
   const ROW = 44
@@ -75,6 +77,7 @@
     }
     const hovered = projectFromEvent(event)
     dropTargetId = hovered && hovered.available !== false ? hovered.id : null
+    setTreeDragCopy(event.altKey)
     return true
   }
 
@@ -301,7 +304,8 @@
               class:active={project.id === activeId}
               class:focused={range.start + offset === focused}
               class:unavailable
-              class:drop={dropTargetId === project.id}
+              class:drop={dropTargetId === project.id ||
+                externalDropId === project.id}
               data-project-id={project.id}
               role="option"
               aria-selected={project.id === activeId}

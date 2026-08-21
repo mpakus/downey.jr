@@ -20,10 +20,14 @@ import {
   decodeTreeDrag,
   beginTreeDrag,
   peekTreeDrag,
+  peekTreeDragCopy,
+  setTreeDragCopy,
   clearTreeDrag,
+  claimTreeDrop,
   isTreeDrag,
   resolveTreeDrag,
   dataTransferHasType,
+  projectIdAtPoint,
   watchTouchesOpenFile,
   isDraftDirty,
   TREE_DRAG_PREFIX,
@@ -150,6 +154,7 @@ describe('tree helpers', () => {
 
   it('returns null for drop targeting when there is no document', () => {
     expect(dropDirAtPoint(0, 0)).toBeNull()
+    expect(projectIdAtPoint(0, 0)).toBeNull()
   })
 
   it('encodes and decodes a tree drag that names its project', () => {
@@ -181,6 +186,16 @@ describe('tree helpers', () => {
     clearTreeDrag()
     expect(peekTreeDrag()).toBeNull()
     expect(isTreeDrag(null)).toBe(false)
+  })
+
+  it('records copy vs move and ignores a duplicate drop', () => {
+    clearTreeDrag()
+    beginTreeDrag('proj-a', ['a.md'])
+    setTreeDragCopy(true)
+    expect(peekTreeDragCopy()).toBe(true)
+    expect(claimTreeDrop('proj-b', ['a.md'])).toBe(true)
+    expect(claimTreeDrop('proj-b', ['a.md'])).toBe(false)
+    clearTreeDrag()
   })
 
   it('reads text/plain from either includes or contains type lists', () => {
